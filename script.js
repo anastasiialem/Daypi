@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = "";
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const DAY_LABELS = {
@@ -880,6 +880,8 @@ registerForm.addEventListener("submit", async (event) => {
 
     await loginWithCredentials(email, password);
   } catch (err) {
+
+
     const text = (err && err.message) || "";
     if (text.includes("reserved")) showMessage(t("emailReserved"), "error");
     else if (text.includes("domain")) showMessage(t("emailDomainOnly"), "error");
