@@ -11,6 +11,39 @@ from pathlib import Path
 
 from .models import Profile, Submission
 
+CONFIG_PATH = Path(settings.BASE_DIR) / "daypi.json"
+
+def _read_config():
+    import json
+    if CONFIG_PATH.exists():
+        try:
+            return json.loads(CONFIG_PATH.read_text("utf-8"))
+        except:
+            pass
+    return {"tasks_open": False, "custom_tasks": []}
+
+def _write_config(data):
+    import json
+    CONFIG_PATH.write_text(json.dumps(data, ensure_ascii=False), "utf-8")
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def config(request):
+    if request.method == "GET":
+        return JsonResponse(_read_config())
+    
+    user = get_user_from_auth(request)
+    profile = Profile.objects.filter(user=user).first() if user else None
+    if not profile or not profile.is_admin:
+        return JsonResponse({"detail": "Forbidden"}, status=403)
+        
+    try:
+        payload = json_from_request(request)
+    except ValueError:
+        return JsonResponse({"ok": False}, status=400)
+        
+    _write_config(payload)
+    return JsonResponse({"ok": True})
 
 def ensure_admin():
     admin = User.objects.filter(email=settings.ADMIN_EMAIL).first()
@@ -282,11 +315,26 @@ def styles(request):
         return HttpResponse("styles.css not found", status=404)
     return HttpResponse(css_path.read_text(encoding="utf-8"), content_type="text/css")
 
-
 @require_http_methods(["GET"])
 def script(request):
     base_dir = Path(__file__).resolve().parent.parent
     js_path = base_dir / "script.js"
     if not js_path.exists():
         return HttpResponse("script.js not found", status=404)
+    return HttpResponse(js_path.read_text(encoding="utf-8"), content_type="application/javascript")
+
+@require_http_methods(["GET"])
+def admin_panel(request):
+    base_dir = Path(__file__).resolve().parent.parent
+    html_path = base_dir / "admin.html"
+    if not html_path.exists():
+        return HttpResponse("admin.html not found", status=404)
+    return HttpResponse(html_path.read_text(encoding="utf-8"), content_type="text/html")
+
+@require_http_methods(["GET"])
+def admin_script(request):
+    base_dir = Path(__file__).resolve().parent.parent
+    js_path = base_dir / "admin.js"
+    if not js_path.exists():
+        return HttpResponse("admin.js not found", status=404)
     return HttpResponse(js_path.read_text(encoding="utf-8"), content_type="application/javascript")

@@ -12,4 +12,7 @@ urlpatterns = [
     path("api/submissions", views.submissions),
     path("api/submissions/me", views.submissions_me),
     path("api/leaderboard", views.leaderboard),
+    path("api/config", views.config),
+    path("admin-panel", views.admin_panel),
+    path("admin.js", views.admin_script),
 ]

@@ -596,6 +596,8 @@ select:focus {
 .task-modal-card {
   width: min(640px, 100%);
   text-align: left;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal-card h3,

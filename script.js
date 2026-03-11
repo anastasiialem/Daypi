@@ -8,83 +8,6 @@ const DAY_LABELS = {
 
 const SYMBOLS = ["π", "√", "≈", "≠", "≤", "≥", "∞", "∑", "Δ", "°", "×", "÷", "^", "(", ")", "[", "]", "{", "}"];
 
-const TASK_TEMPLATES = [
-  {
-    titleUk: "Логічна задача",
-    titleEn: "Logic Task",
-    build: (rnd) => {
-      const a = 2 + Math.floor(rnd() * 8);
-      const b = 2 + Math.floor(rnd() * 8);
-      return {
-        conditionUk: `Обчисли значення виразу: (${a} + ${b})^2 - ${a * b}`,
-        conditionEn: `Calculate the expression: (${a} + ${b})^2 - ${a * b}`
-      };
-    }
-  },
-  {
-    titleUk: "Задача на відсотки",
-    titleEn: "Percent Task",
-    build: (rnd) => {
-      const base = 120 + Math.floor(rnd() * 200);
-      const p = 5 + Math.floor(rnd() * 20);
-      return {
-        conditionUk: `Знайди ${p}% від числа ${base}.`,
-        conditionEn: `Find ${p}% of ${base}.`
-      };
-    }
-  },
-  {
-    titleUk: "Формула площі",
-    titleEn: "Area Formula",
-    build: (rnd) => {
-      const r = 2 + Math.floor(rnd() * 9);
-      return {
-        conditionUk: `Запиши площу круга радіуса ${r} через π.`,
-        conditionEn: `Write the area of a circle with radius ${r} using π.`
-      };
-    }
-  },
-  {
-    titleUk: "Арифметична прогресія",
-    titleEn: "Arithmetic Progression",
-    build: (rnd) => {
-      const a1 = 1 + Math.floor(rnd() * 7);
-      const d = 2 + Math.floor(rnd() * 6);
-      const n = 4 + Math.floor(rnd() * 5);
-      return {
-        conditionUk: `Знайди ${n}-й член прогресії: a₁=${a1}, d=${d}.`,
-        conditionEn: `Find the ${n}th term: a₁=${a1}, d=${d}.`
-      };
-    }
-  },
-  {
-    titleUk: "Рівняння",
-    titleEn: "Equation",
-    build: (rnd) => {
-      const x = 2 + Math.floor(rnd() * 8);
-      const k = 2 + Math.floor(rnd() * 5);
-      const b = 3 + Math.floor(rnd() * 9);
-      const c = k * x + b;
-      return {
-        conditionUk: `Розв'яжи рівняння: ${k}x + ${b} = ${c}.`,
-        conditionEn: `Solve the equation: ${k}x + ${b} = ${c}.`
-      };
-    }
-  },
-  {
-    titleUk: "Інтервал значень",
-    titleEn: "Value Range",
-    build: (rnd) => {
-      const left = 1 + Math.floor(rnd() * 4);
-      const right = left + 3 + Math.floor(rnd() * 4);
-      return {
-        conditionUk: `Запиши множину цілих x, де ${left} ≤ x < ${right}.`,
-        conditionEn: `Write the set of integer x where ${left} ≤ x < ${right}.`
-      };
-    }
-  }
-];
-
 const I18N = {
   uk: {
     pageTitle: "Day of number pi",
@@ -165,9 +88,17 @@ const I18N = {
     symbolsLabel: "Математичні символи:",
     submitAnswer: "Надіслати відповідь",
     cancelTask: "Скасувати",
-    answerRequired: "Введіть відповідь перед надсиланням",
     emailSent: "Пароль надіслано на пошту",
-    emailNotSent: "Пошта не налаштована, лист не відправлено"
+    emailNotSent: "Пошта не налаштована, лист не відправлено",
+    addBtn: "Створити задачу",
+    addTaskTitle: "Створити задачу",
+    taskSaved: "Задачу збережено!",
+    saveBtn: "Зберегти",
+    toggleTasksBtnOpen: "Відкрити задачі для всіх",
+    toggleTasksBtnClose: "Закрити задачі",
+    tasksOpenSuccess: "Налаштування оновлено!",
+    answerCorrect: "Правильно!",
+    answerWrong: "Неправильно!"
   },
   en: {
     pageTitle: "Day of number pi",
@@ -248,9 +179,17 @@ const I18N = {
     symbolsLabel: "Math symbols:",
     submitAnswer: "Submit answer",
     cancelTask: "Cancel",
-    answerRequired: "Please enter your answer first",
     emailSent: "Password has been sent by email",
-    emailNotSent: "Email is not configured, no message sent"
+    emailNotSent: "Email is not configured, no message sent",
+    addBtn: "Create task",
+    addTaskTitle: "Create task",
+    taskSaved: "Task saved!",
+    saveBtn: "Save",
+    toggleTasksBtnOpen: "Open tasks for all",
+    toggleTasksBtnClose: "Close tasks",
+    tasksOpenSuccess: "Settings updated!",
+    answerCorrect: "Correct!",
+    answerWrong: "Wrong answer!"
   }
 };
 
@@ -305,6 +244,7 @@ const weekTitle = document.getElementById("week-title");
 const weekStats = document.getElementById("week-stats");
 
 const leaderboardTitle = document.getElementById("leaderboard-title");
+const leaderboardSearchInput = document.getElementById("leaderboard-search");
 const toggleLeaderboardButton = document.getElementById("toggle-leaderboard-button");
 const leaderboardWrap = document.getElementById("leaderboard-wrap");
 const leaderboardBody = document.getElementById("leaderboard-body");
@@ -342,12 +282,20 @@ const mathSymbols = document.getElementById("math-symbols");
 const submitAnswerButton = document.getElementById("submit-answer-button");
 const cancelTaskButton = document.getElementById("cancel-task-button");
 
+const btnOpenAddTask = document.getElementById("btn-open-add-task");
+const btnToggleTasks = document.getElementById("btn-toggle-tasks");
+
+const taskModalImage = document.getElementById("task-modal-image");
+
+let serverConfig = { tasks_open: false, custom_tasks: [] };
+
 let currentLang = getStorage("pi_lang", "uk");
 let sessionUser = getStorage("pi_session_user", null);
 let sessionToken = getStorage("pi_session_token", null);
 let clockTimer = null;
 let isLeaderboardOpen = false;
 let activeTask = null;
+let cachedLeaderboardRows = [];
 
 function t(key) {
   return I18N[currentLang][key] || I18N.uk[key] || key;
@@ -457,8 +405,23 @@ function closeSettings() {
 function openTaskModal(task, dayKey) {
   activeTask = { task, dayKey };
   taskModalCondition.textContent = currentLang === "en" ? task.conditionEn : task.conditionUk;
+  
+  if (task.imgUrl) {
+    taskModalImage.src = task.imgUrl;
+    taskModalImage.classList.remove("hidden");
+  } else {
+    taskModalImage.classList.add("hidden");
+    taskModalImage.src = "";
+  }
+
   taskAnswer.value = "";
   taskModal.classList.remove("hidden");
+  
+  // Render LaTeX using MathJax if loaded
+  if (window.MathJax) {
+    window.MathJax.typesetPromise([taskModalCondition]).catch(() => {});
+  }
+
   taskAnswer.focus();
 }
 
@@ -481,15 +444,44 @@ function buildDailyTasks(dayKey) {
   const dateKey = getDateKey();
   const seed = hashString(`${dateKey}-${dayKey}`);
   const rnd = createRng(seed);
-  const source = [...TASK_TEMPLATES];
+  
+  const unrestrictedCustomTasks = [];
+  const forcedTasks = [];
+
+  (serverConfig.custom_tasks || []).forEach(t => {
+    const taskObj = {
+      titleUk: t.titleUk,
+      titleEn: t.titleEn,
+      build: () => ({ conditionUk: t.conditionUk, conditionEn: t.conditionEn }),
+      imgUrl: t.imgUrl || "",
+      tags: t.tags || "",
+      answers: t.answers || "",
+      fixed_points: t.fixed_points || null,
+      fixed_accuracy: t.fixed_accuracy || null
+    };
+    
+    if (t.is_hidden) return; // Skip hidden tasks altogether
+
+    if (!t.allowedEmails || t.allowedEmails.trim() === "") {
+      unrestrictedCustomTasks.push(taskObj);
+    } else {
+      const allowed = t.allowedEmails.toLowerCase().split(",").map(e => e.trim());
+      if (sessionUser && allowed.includes(sessionUser.email.toLowerCase())) {
+        forcedTasks.push(taskObj);
+      }
+    }
+  });
+
+  const source = [...unrestrictedCustomTasks];
   const picked = [];
 
   for (let i = 0; i < 3; i += 1) {
+    if (source.length === 0) break;
     const idx = Math.floor(rnd() * source.length);
     const tmpl = source.splice(idx, 1)[0];
     const conditions = tmpl.build(rnd);
-    const points = 12 + Math.floor(rnd() * 12);
-    const accuracy = 72 + Math.floor(rnd() * 26);
+    const points = tmpl.fixed_points != null && tmpl.fixed_points !== "" ? parseInt(tmpl.fixed_points) : 12 + Math.floor(rnd() * 12);
+    const accuracy = tmpl.fixed_accuracy != null && tmpl.fixed_accuracy !== "" ? parseInt(tmpl.fixed_accuracy) : 72 + Math.floor(rnd() * 26);
 
     picked.push({
       id: `${dateKey}-${dayKey}-${i + 1}`,
@@ -497,10 +489,31 @@ function buildDailyTasks(dayKey) {
       titleEn: tmpl.titleEn,
       conditionUk: conditions.conditionUk,
       conditionEn: conditions.conditionEn,
+      imgUrl: tmpl.imgUrl || "",
+      tags: tmpl.tags || "",
+      answers: tmpl.answers || "",
       points,
       accuracy
     });
   }
+
+  forcedTasks.forEach((tmpl, i) => {
+    const conditions = tmpl.build(rnd);
+    const points = tmpl.fixed_points != null && tmpl.fixed_points !== "" ? parseInt(tmpl.fixed_points) : 15 + Math.floor(rnd() * 10);
+    const accuracy = tmpl.fixed_accuracy != null && tmpl.fixed_accuracy !== "" ? parseInt(tmpl.fixed_accuracy) : 85 + Math.floor(rnd() * 15);
+    picked.push({
+      id: `${dateKey}-${dayKey}-f${i + 1}`,
+      titleUk: tmpl.titleUk,
+      titleEn: tmpl.titleEn,
+      conditionUk: conditions.conditionUk,
+      conditionEn: conditions.conditionEn,
+      imgUrl: tmpl.imgUrl || "",
+      tags: tmpl.tags || "",
+      answers: tmpl.answers || "",
+      points,
+      accuracy
+    });
+  });
 
   return picked;
 }
@@ -586,6 +599,8 @@ function applyLanguage() {
   submitAnswerButton.textContent = t("submitAnswer");
   cancelTaskButton.textContent = t("cancelTask");
 
+  if (btnToggleTasks) btnToggleTasks.textContent = serverConfig.tasks_open ? t("toggleTasksBtnClose") : t("toggleTasksBtnOpen");
+
   settingsTitle.textContent = t("settingsTitle");
   settingsQuestion.textContent = t("settingsQuestion");
   languageLabel.textContent = t("languageLabel");
@@ -605,15 +620,24 @@ function applyLanguage() {
   }
 }
 
-async function renderDayTasks() {
+async function renderDayTasks(submissions) {
   if (!sessionUser) return;
+  if (!submissions) {
+    submissions = await api("/api/submissions/me").catch(() => []);
+  }
   const todayKey = getTodayKey();
   const tasks = buildDailyTasks(todayKey);
 
   dayLabel.textContent = `${t("todayPrefix")}: ${formatDay(todayKey)}`;
   tasksList.innerHTML = "";
-  tasksList.classList.add("hidden");
-  tasksComingSoon.classList.remove("hidden");
+  
+  if (isAdmin(sessionUser) || serverConfig.tasks_open) {
+    tasksList.classList.remove("hidden");
+    tasksComingSoon.classList.add("hidden");
+  } else {
+    tasksList.classList.add("hidden");
+    tasksComingSoon.classList.remove("hidden");
+  }
 
   tasks.forEach((task) => {
     const card = document.createElement("article");
@@ -621,11 +645,28 @@ async function renderDayTasks() {
     const title = currentLang === "en" ? task.titleEn : task.titleUk;
 
     card.className = "task-item";
-    card.innerHTML = `<h5>${title}</h5><p>+${task.points} ${t("pointsWord")} • ${t("accuracyWord")} ${task.accuracy}%</p>`;
-
-    button.type = "button";
-    button.textContent = t("chooseTask");
-    button.addEventListener("click", () => openTaskModal(task, todayKey));
+    let subInfo = `+${task.points} ${t("pointsWord")} • ${t("accuracyWord")} ${task.accuracy}%`;
+    if (task.tags) {
+      let tagsDisplay = task.tags.split(',').map(tag => `<span style="background:#4CAF50; color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-right:4px;">${tag.trim()}</span>`).join('');
+      subInfo += `<br><div style="margin-top:6px;">${tagsDisplay}</div>`;
+    }
+    card.innerHTML = `<h5>${title}</h5><p>${subInfo}</p>`;
+    
+    const isSolved = submissions.some(s => s.task_id === task.id && s.day_key === todayKey && s.points > 0);
+    
+    if (isSolved) {
+      button.type = "button";
+      button.textContent = currentLang === "en" ? "Solved ✓" : "Вирішено ✓";
+      button.disabled = true;
+      button.style.background = "#4CAF50";
+      button.style.color = "white";
+      button.style.cursor = "default";
+      button.style.opacity = "0.8";
+    } else {
+      button.type = "button";
+      button.textContent = t("chooseTask");
+      button.addEventListener("click", () => openTaskModal(task, todayKey));
+    }
 
     card.appendChild(button);
     tasksList.appendChild(card);
@@ -668,16 +709,38 @@ function renderWeekStats(submissions) {
 
 async function renderLeaderboard() {
   leaderboardBody.innerHTML = "";
-  const rows = await api("/api/leaderboard");
+  
+  // fetch only if undefined or empty, basically fetching once or when forced
+  let rows = await api("/api/leaderboard");
+  cachedLeaderboardRows = rows;
+  
+  renderLeaderboardRows();
+}
 
-  if (!rows.length) {
+function renderLeaderboardRows() {
+  leaderboardBody.innerHTML = "";
+  const query = (leaderboardSearchInput.value || "").trim().toLowerCase();
+  const hiddenEmails = (serverConfig.hidden_users || "").toLowerCase().split(",").map(e => e.trim()).filter(Boolean);
+
+  const filtered = cachedLeaderboardRows.filter(r => {
+    // Check if user is hidden
+    if (hiddenEmails.includes(r.email.toLowerCase())) return false;
+    
+    // Check search query
+    if (!query) return true;
+    const nameMatch = (r.name || "").toLowerCase().includes(query);
+    const facultyMatch = (r.faculty || "").toLowerCase().includes(query);
+    return nameMatch || facultyMatch;
+  });
+
+  if (!filtered.length) {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td colspan="5">${t("noLeaderboardData")}</td>`;
     leaderboardBody.appendChild(tr);
     return;
   }
 
-  rows.forEach((row, idx) => {
+  filtered.forEach((row, idx) => {
     const tr = document.createElement("tr");
     if (sessionUser && row.email === sessionUser.email) tr.classList.add("current-user");
     tr.innerHTML = `
@@ -690,6 +753,8 @@ async function renderLeaderboard() {
     leaderboardBody.appendChild(tr);
   });
 }
+
+leaderboardSearchInput.addEventListener("input", renderLeaderboardRows);
 
 async function renderAdminLog() {
   adminLogBody.innerHTML = "";
@@ -752,7 +817,9 @@ async function renderDashboard() {
   accuracyValue.textContent = `${stats.avgAccuracy}%`;
   totalRating.textContent = `${stats.dynamicRating}`;
 
-  await renderDayTasks();
+  if (btnToggleTasks) btnToggleTasks.textContent = serverConfig.tasks_open ? t("toggleTasksBtnClose") : t("toggleTasksBtnOpen");
+
+  await renderDayTasks(submissions);
   renderWeekStats(submissions);
   await renderLeaderboard();
   await renderAdminLog();
@@ -763,6 +830,13 @@ async function openApp() {
   authSection.classList.add("hidden");
   appSection.classList.remove("hidden");
   settingsButton.classList.remove("hidden");
+  
+  try {
+    serverConfig = await api("/api/config");
+  } catch (e) {
+    console.error("Config fetch failed", e);
+  }
+
   await renderDashboard();
 
   if (clockTimer) clearInterval(clockTimer);
@@ -813,6 +887,23 @@ async function submitTaskAnswer() {
     return;
   }
 
+  let finalPoints = activeTask.task.points;
+  let finalAccuracy = activeTask.task.accuracy;
+
+  const expectedAnswers = activeTask.task.answers;
+  if (expectedAnswers && expectedAnswers.trim() !== "") {
+    const list = expectedAnswers.split(",").map(a => a.trim().toLowerCase());
+    if (list.includes(answer.toLowerCase())) {
+      finalPoints = activeTask.task.points;
+      finalAccuracy = 100;
+      showMessage(t("answerCorrect"), "success");
+    } else {
+      finalPoints = 0;
+      finalAccuracy = 0;
+      showMessage(t("answerWrong"), "error");
+    }
+  }
+
   await api("/api/submissions", {
     method: "POST",
     body: JSON.stringify({
@@ -821,8 +912,8 @@ async function submitTaskAnswer() {
       task_id: activeTask.task.id,
       task_title_uk: activeTask.task.titleUk,
       task_title_en: activeTask.task.titleEn,
-      points: activeTask.task.points,
-      accuracy: activeTask.task.accuracy,
+      points: finalPoints,
+      accuracy: finalAccuracy,
       answer
     })
   });
@@ -855,6 +946,20 @@ taskModal.addEventListener("click", (event) => {
   if (event.target === taskModal) closeTaskModal();
 });
 
+if (btnToggleTasks) {
+  btnToggleTasks.addEventListener("click", async () => {
+    serverConfig.tasks_open = !serverConfig.tasks_open;
+    try {
+      await api("/api/config", { method: "POST", body: JSON.stringify(serverConfig) });
+      showMessage(t("tasksOpenSuccess"), "success");
+      btnToggleTasks.textContent = serverConfig.tasks_open ? t("toggleTasksBtnClose") : t("toggleTasksBtnOpen");
+      await renderDayTasks();
+    } catch (err) {
+      showMessage("Error saving config", "error");
+    }
+  });
+}
+
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -880,8 +985,6 @@ registerForm.addEventListener("submit", async (event) => {
 
     await loginWithCredentials(email, password);
   } catch (err) {
-
-
     const text = (err && err.message) || "";
     if (text.includes("reserved")) showMessage(t("emailReserved"), "error");
     else if (text.includes("domain")) showMessage(t("emailDomainOnly"), "error");
@@ -920,8 +1023,14 @@ loginForm.addEventListener("submit", async (event) => {
 
 ensureMathSymbols();
 applyLanguage();
-sessionUser = null;
-sessionToken = null;
-setStorage("pi_session_user", null);
-setStorage("pi_session_token", null);
-switchTo("login");
+
+const storedUser = getStorage("pi_session_user", null);
+const storedToken = getStorage("pi_session_token", null);
+
+if (storedUser && storedToken) {
+  sessionUser = storedUser;
+  sessionToken = storedToken;
+  openApp();
+} else {
+  switchTo("login");
+}

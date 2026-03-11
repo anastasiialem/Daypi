@@ -10,6 +10,8 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Playfair+Display:wght@600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -104,6 +106,7 @@
             <button id="toggle-leaderboard-button" class="leaderboard-toggle" type="button">Показати</button>
           </div>
           <div id="leaderboard-wrap" class="leaderboard-wrap hidden">
+            <input type="text" id="leaderboard-search" placeholder="Пошук за іменем або факультетом..." style="margin-bottom: 12px; width: 100%;" />
             <table class="leaderboard-table">
               <thead>
                 <tr>
@@ -122,6 +125,10 @@
         <section id="admin-section" class="admin-panel hidden">
           <div class="leaderboard-head">
             <h4 id="admin-title">Адмін журнал</h4>
+            <div style="display:flex; gap:10px;">
+              <button id="btn-toggle-tasks" class="modal-btn modal-secondary" style="padding: 6px 12px; font-size: 0.9em; width: auto; background:#333; color:white;">Відкрити задачі</button>
+              <a href="/admin-panel" class="modal-btn" style="padding: 6px 12px; font-size: 0.9em; width: auto; text-decoration:none; color:white;">Панель керування задачами</a>
+            </div>
           </div>
           <div class="leaderboard-wrap">
             <table class="leaderboard-table">
@@ -181,7 +188,8 @@
     <div id="task-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
       <div class="modal-card task-modal-card">
         <h3 id="task-modal-title">Умова задачі</h3>
-        <p id="task-modal-condition"></p>
+        <img id="task-modal-image" class="hidden" style="max-width:100%; border-radius:8px; margin-bottom:15px;" />
+        <p id="task-modal-condition" style="font-size:1.1em;"></p>
         <label id="answer-label" for="task-answer">Відповідь</label>
         <textarea id="task-answer" rows="4" placeholder="Введіть відповідь..."></textarea>
         <p id="symbols-label" class="symbols-label">Математичні символи:</p>

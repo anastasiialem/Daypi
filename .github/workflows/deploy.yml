@@ -18,22 +18,20 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
           script: |
-            # Navigate to the project folder
+            # 1. Navigate to the repository root
             cd /var/www/daypi
 
-            # Pull the latest code from GitHub
-            git pull origin main
+            # 2. Force the server to exactly match the main branch on GitHub
+            git fetch --all
+            git reset --hard origin/main
 
-            # Go into the Django directory
+            # 3. Navigate into the Django project directory
             cd Daypi
 
-            # Activate virtual environment and install dependencies
-            source venv/bin/activate
-            pip install -r requirements.txt
+            # 4. Use the absolute path to the virtual environment (bypasses the 'source' command entirely)
+            /var/www/daypi/Daypi/venv/bin/pip install -r requirements.txt
+            /var/www/daypi/Daypi/venv/bin/python manage.py migrate
+            /var/www/daypi/Daypi/venv/bin/python manage.py collectstatic --noinput
 
-            # Run database migrations and collect static files
-            python manage.py migrate
-            python manage.py collectstatic --noinput
-
-            # Restart the Gunicorn service to apply changes
+            # 5. Restart the server to apply changes
             sudo systemctl restart daypi
