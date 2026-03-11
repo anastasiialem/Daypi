@@ -58,6 +58,15 @@ window.saveGlobalConfig = function() {
   saveConfig();
 }
 
+function escapeHTML(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function renderTasks() {
   tasksContainer.innerHTML = "";
   serverConfig.custom_tasks = serverConfig.custom_tasks || [];
@@ -72,42 +81,42 @@ function renderTasks() {
     card.className = "task-card";
     
     card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-         <h4>Задача #${index + 1}</h4>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+         <input type="text" id="t-prod-name-${index}" value="${escapeHTML(task.production_name || `Задача #${index + 1}`)}" placeholder="Внутрішня назва (не видно гравцям)" style="font-weight:bold; font-size:1.1em; background:rgba(255,255,255,0.9); border:1px solid rgba(135,111,221,0.5); border-radius:6px; padding:6px 10px; width:60%;" />
          <button class="modal-btn delete" onclick="deleteTask(${index})" style="background:#e53935; width:auto; padding:4px 8px; font-size:0.8em; margin:0;">Видалити</button>
       </div>
       
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
              <label class="muted">Назва (UA):</label>
-             <input type="text" id="t-name-uk-${index}" value="${task.titleUk || ''}" />
+             <input type="text" id="t-name-uk-${index}" value="${escapeHTML(task.titleUk)}" />
              
              <label class="muted">Умова LaTeX (UA):</label>
-             <textarea rows="3" id="t-cond-uk-${index}">${task.conditionUk || ''}</textarea>
+             <textarea rows="3" id="t-cond-uk-${index}">${escapeHTML(task.conditionUk)}</textarea>
           </div>
           <div style="flex:1;">
              <label class="muted">Назва (EN):</label>
-             <input type="text" id="t-name-en-${index}" value="${task.titleEn || ''}" />
+             <input type="text" id="t-name-en-${index}" value="${escapeHTML(task.titleEn)}" />
              
              <label class="muted">Умова LaTeX (EN):</label>
-             <textarea rows="3" id="t-cond-en-${index}">${task.conditionEn || ''}</textarea>
+             <textarea rows="3" id="t-cond-en-${index}">${escapeHTML(task.conditionEn)}</textarea>
           </div>
       </div>
       
       <label class="muted">URL Зображення:</label>
-      <input type="url" id="t-img-${index}" value="${task.imgUrl || ''}" placeholder="https://..." />
+      <input type="url" id="t-img-${index}" value="${escapeHTML(task.imgUrl)}" placeholder="https://..." />
       
       <label class="muted">Обмеження доступу (Emails через кому):</label>
-      <input type="text" id="t-emails-${index}" value="${task.allowedEmails || ''}" placeholder="Залиште порожнім, щоб була доступна всім" />
+      <input type="text" id="t-emails-${index}" value="${escapeHTML(task.allowedEmails)}" placeholder="Залиште порожнім, щоб була доступна всім" />
       
       <div style="display:flex; gap:10px;">
           <div style="flex:1;">
              <label class="muted">Теги (через кому):</label>
-             <input type="text" id="t-tags-${index}" value="${task.tags || ''}" placeholder="math, logic, easy" />
+             <input type="text" id="t-tags-${index}" value="${escapeHTML(task.tags)}" placeholder="math, logic, easy" />
           </div>
           <div style="flex:1;">
              <label class="muted">Очікувана/можлива відповідь:</label>
-             <input type="text" id="t-answers-${index}" value="${task.answers || ''}" placeholder="10.5" />
+             <input type="text" id="t-answers-${index}" value="${escapeHTML(task.answers)}" placeholder="10.5" />
           </div>
       </div>
       
@@ -145,6 +154,7 @@ window.deleteTask = function(index) {
 
 window.saveTask = function(index) {
   serverConfig.custom_tasks[index] = {
+    production_name: document.getElementById(`t-prod-name-${index}`).value.trim(),
     titleUk: document.getElementById(`t-name-uk-${index}`).value.trim(),
     titleEn: document.getElementById(`t-name-en-${index}`).value.trim(),
     conditionUk: document.getElementById(`t-cond-uk-${index}`).value.trim(),
@@ -162,6 +172,7 @@ window.saveTask = function(index) {
 
 btnAddNew.addEventListener("click", () => {
   serverConfig.custom_tasks.unshift({
+     production_name: "",
      titleUk: "Нова задача",
      titleEn: "New task",
      conditionUk: "", conditionEn: "", imgUrl: "", allowedEmails: "", tags: "", answers: "", fixed_points: "", fixed_accuracy: "", is_hidden: false

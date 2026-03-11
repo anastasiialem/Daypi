@@ -301,6 +301,15 @@ function t(key) {
   return I18N[currentLang][key] || I18N.uk[key] || key;
 }
 
+function escapeHTML(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function getStorage(key, fallback) {
   try {
     return JSON.parse(localStorage.getItem(key)) ?? fallback;
@@ -745,7 +754,7 @@ function renderLeaderboardRows() {
     if (sessionUser && row.email === sessionUser.email) tr.classList.add("current-user");
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td>${row.name}</td>
+      <td>${escapeHTML(row.name)}</td>
       <td>${row.points}</td>
       <td>${row.accuracy}%</td>
       <td>${row.rating}</td>
@@ -783,10 +792,10 @@ async function renderAdminLog() {
     const taskTitle = currentLang === "en" ? item.task_title_en : item.task_title_uk;
     tr.innerHTML = `
       <td>${new Date(item.ts).toLocaleString(locale)}</td>
-      <td>${item.name} (${item.email})</td>
-      <td>${taskTitle}</td>
+      <td>${escapeHTML(item.name)} (${escapeHTML(item.email)})</td>
+      <td>${escapeHTML(taskTitle)}</td>
       <td>${item.points}</td>
-      <td>${(item.answer || "").slice(0, 70)}</td>
+      <td>${escapeHTML((item.answer || "").slice(0, 70))}</td>
     `;
     adminLogBody.appendChild(tr);
   });
@@ -980,10 +989,14 @@ registerForm.addEventListener("submit", async (event) => {
       body: JSON.stringify({ name, email, course, faculty, password })
     });
 
-    showMessage(result.email_sent ? t("emailSent") : t("emailNotSent"), "success");
     registerForm.reset();
 
-    await loginWithCredentials(email, password);
+    try {
+      await loginWithCredentials(email, password);
+    } catch (loginErr) {
+      switchTo("login");
+      showMessage(result.email_sent ? t("emailSent") : "Реєстрація успішна, увійдіть вручну.", "success");
+    }
   } catch (err) {
     const text = (err && err.message) || "";
     if (text.includes("reserved")) showMessage(t("emailReserved"), "error");
@@ -994,7 +1007,7 @@ registerForm.addEventListener("submit", async (event) => {
 });
 
 async function loginWithCredentials(email, password) {
-  const token = btoa(`${email}:${password}`);
+  const token = btoa(unescape(encodeURIComponent(`${email}:${password}`)));
   sessionToken = token;
   setStorage("pi_session_token", token);
 
