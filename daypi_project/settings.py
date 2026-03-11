@@ -51,16 +51,22 @@ TEMPLATES = [
 WSGI_APPLICATION = "daypi_project.wsgi.application"
 ASGI_APPLICATION = "daypi_project.asgi.application"
 
+DB_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.sqlite3")
+
 DATABASES = {
     "default": {
-        "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
+        "ENGINE": DB_ENGINE,
         "NAME": os.getenv("DB_NAME", str(BASE_DIR / "daypi.db")),
-        "USER": os.getenv("DB_USER", ""),
-        "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", ""),
-        "PORT": os.getenv("DB_PORT", ""),
     }
 }
+
+if "postgresql" in DB_ENGINE:
+    DATABASES["default"].update({
+        "USER": os.getenv("DB_USER", "postgres"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+        "PORT": os.getenv("DB_PORT", "5432"),
+    })
 
 AUTH_PASSWORD_VALIDATORS = []
 
