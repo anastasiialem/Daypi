@@ -1,0 +1,38 @@
+name: Deploy Daypi to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # Navigate to the project folder
+            cd /var/www/daypi
+
+            # Pull the latest code from GitHub
+            git pull origin main
+
+            # Go into the Django directory
+            cd Daypi
+
+            # Activate virtual environment and install dependencies
+            source venv/bin/activate
+            pip install -r requirements.txt
+
+            # Run database migrations and collect static files
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+
+            # Restart the Gunicorn service to apply changes
+            sudo systemctl restart daypi
