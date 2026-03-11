@@ -21,6 +21,7 @@ jobs:
             # 1. Navigate to the repository root
             cd /var/www/daypi
 
+
             # 2. Force the server to exactly match the main branch on GitHub
             git fetch --all
             git reset --hard origin/main
