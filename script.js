@@ -1,3 +1,4 @@
+const API_BASE = "http://localhost:8000";
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 const DAY_LABELS = {
@@ -6,14 +7,6 @@ const DAY_LABELS = {
 };
 
 const SYMBOLS = ["π", "√", "≈", "≠", "≤", "≥", "∞", "∑", "Δ", "°", "×", "÷", "^", "(", ")", "[", "]", "{", "}"];
-const ADMIN_USER = {
-  name: "Admin",
-  email: "lem.pn@ucu.edu.ua",
-  course: "-",
-  faculty: "Адміністрація",
-  password: "200820"
-};
-const REQUIRED_DOMAIN = "@ucu.edu.ua";
 
 const TASK_TEMPLATES = [
   {
@@ -135,8 +128,6 @@ const I18N = {
     adminColPoints: "Бали",
     adminColAnswer: "Відповідь",
     noAdminData: "Поки немає виконаних задач",
-    comingSoonTitle: "Coming soon",
-    comingSoonText: "Функції для користувачів будуть доступні незабаром.",
     settingsTitle: "Налаштування",
     settingsQuestion: "Що зробити?",
     languageLabel: "Мова",
@@ -174,7 +165,9 @@ const I18N = {
     symbolsLabel: "Математичні символи:",
     submitAnswer: "Надіслати відповідь",
     cancelTask: "Скасувати",
-    answerRequired: "Введіть відповідь перед надсиланням"
+    answerRequired: "Введіть відповідь перед надсиланням",
+    emailSent: "Пароль надіслано на пошту",
+    emailNotSent: "Пошта не налаштована, лист не відправлено"
   },
   en: {
     pageTitle: "Day of number pi",
@@ -218,8 +211,6 @@ const I18N = {
     adminColPoints: "Points",
     adminColAnswer: "Answer",
     noAdminData: "No completed tasks yet",
-    comingSoonTitle: "Coming soon",
-    comingSoonText: "User features will be available soon.",
     settingsTitle: "Settings",
     settingsQuestion: "What do you want to do?",
     languageLabel: "Language",
@@ -257,7 +248,9 @@ const I18N = {
     symbolsLabel: "Math symbols:",
     submitAnswer: "Submit answer",
     cancelTask: "Cancel",
-    answerRequired: "Please enter your answer first"
+    answerRequired: "Please enter your answer first",
+    emailSent: "Password has been sent by email",
+    emailNotSent: "Email is not configured, no message sent"
   }
 };
 
@@ -329,6 +322,7 @@ const adminColUser = document.getElementById("admin-col-user");
 const adminColTask = document.getElementById("admin-col-task");
 const adminColPoints = document.getElementById("admin-col-points");
 const adminColAnswer = document.getElementById("admin-col-answer");
+
 const comingSoonSection = document.getElementById("coming-soon-section");
 const comingSoonTitle = document.getElementById("coming-soon-title");
 const comingSoonText = document.getElementById("coming-soon-text");
@@ -349,7 +343,8 @@ const submitAnswerButton = document.getElementById("submit-answer-button");
 const cancelTaskButton = document.getElementById("cancel-task-button");
 
 let currentLang = getStorage("pi_lang", "uk");
-let currentUser = getStorage("pi_session_user", null);
+let sessionUser = getStorage("pi_session_user", null);
+let sessionToken = getStorage("pi_session_token", null);
 let clockTimer = null;
 let isLeaderboardOpen = false;
 let activeTask = null;
@@ -375,76 +370,31 @@ function showMessage(text, type = "") {
   message.className = `message ${type}`.trim();
 }
 
-function getUsers() {
-  return getStorage("pi_users", []);
+function authHeaders() {
+  if (!sessionToken) return {};
+  return { Authorization: `Basic ${sessionToken}` };
 }
 
-function saveUsers(users) {
-  setStorage("pi_users", users);
-}
+async function api(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+      ...(options.headers || {})
+    },
+    ...options
+  });
 
-function cleanupReservedAccounts() {
-  const users = getUsers();
-  const filteredUsers = users.filter((u) => (u.email || "").toLowerCase() !== ADMIN_USER.email);
-  if (filteredUsers.length !== users.length) {
-    saveUsers(filteredUsers);
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || "Request failed");
   }
 
-  const progressMap = getProgressMap();
-  if (progressMap[ADMIN_USER.email]) {
-    delete progressMap[ADMIN_USER.email];
-    saveProgressMap(progressMap);
-  }
-
-  const submissions = getSubmissions();
-  const filteredSubmissions = submissions.filter((s) => (s.email || "").toLowerCase() !== ADMIN_USER.email);
-  if (filteredSubmissions.length !== submissions.length) {
-    saveSubmissions(filteredSubmissions);
-  }
-}
-
-function getSubmissions() {
-  return getStorage("pi_submissions", []);
-}
-
-function saveSubmissions(items) {
-  setStorage("pi_submissions", items);
-}
-
-function getProgressMap() {
-  return getStorage("pi_progress_by_user", {});
-}
-
-function saveProgressMap(map) {
-  setStorage("pi_progress_by_user", map);
-}
-
-function deleteUserData(email) {
-  const normalized = (email || "").toLowerCase();
-  saveUsers(getUsers().filter((u) => (u.email || "").toLowerCase() !== normalized));
-
-  const progressMap = getProgressMap();
-  if (progressMap[normalized]) {
-    delete progressMap[normalized];
-    saveProgressMap(progressMap);
-  }
-
-  saveSubmissions(getSubmissions().filter((s) => (s.email || "").toLowerCase() !== normalized));
-}
-
-function getUserProgress(email) {
-  const map = getProgressMap();
-  return map[email] || {};
-}
-
-function saveUserProgress(email, progress) {
-  const map = getProgressMap();
-  map[email] = progress;
-  saveProgressMap(map);
+  return response.json();
 }
 
 function isAdmin(user) {
-  return Boolean(user && user.email && user.email.toLowerCase() === ADMIN_USER.email);
+  return Boolean(user && user.is_admin);
 }
 
 function getTodayIndex() {
@@ -517,11 +467,10 @@ function closeTaskModal() {
   activeTask = null;
 }
 
-function computeStats(progress) {
-  const entries = Object.values(progress);
-  const totalPoints = entries.reduce((sum, item) => sum + item.points, 0);
-  const avgAccuracy = entries.length
-    ? Math.round(entries.reduce((sum, item) => sum + item.accuracy, 0) / entries.length)
+function computeStats(items) {
+  const totalPoints = items.reduce((sum, item) => sum + item.points, 0);
+  const avgAccuracy = items.length
+    ? Math.round(items.reduce((sum, item) => sum + item.accuracy, 0) / items.length)
     : 0;
   const dynamicRating = Math.round(totalPoints * 1.55 + avgAccuracy * 4.2);
 
@@ -626,6 +575,7 @@ function applyLanguage() {
   adminColTask.textContent = t("adminColTask");
   adminColPoints.textContent = t("adminColPoints");
   adminColAnswer.textContent = t("adminColAnswer");
+
   comingSoonTitle.textContent = t("comingSoonTitle");
   comingSoonText.textContent = t("comingSoonText");
 
@@ -644,7 +594,7 @@ function applyLanguage() {
   deleteAccountButton.textContent = t("deleteAccount");
   logoutButton.textContent = t("logout");
   settingsButton.setAttribute("aria-label", t("settingsTitle"));
-  adminInfo.textContent = isAdmin(currentUser) ? t("adminInfoOn") : t("adminInfoOff");
+  adminInfo.textContent = isAdmin(sessionUser) ? t("adminInfoOn") : t("adminInfoOff");
 
   languageSelect.querySelector("option[value='uk']").textContent = t("langUk");
   languageSelect.querySelector("option[value='en']").textContent = t("langEn");
@@ -655,18 +605,10 @@ function applyLanguage() {
   }
 }
 
-function renderDayTasks() {
-  if (!currentUser) return;
+async function renderDayTasks() {
+  if (!sessionUser) return;
   const todayKey = getTodayKey();
   const tasks = buildDailyTasks(todayKey);
-  const progress = getUserProgress(currentUser.email);
-  const selectedRaw = progress[todayKey];
-  const selected = selectedRaw && tasks.some((task) => task.id === selectedRaw.id) ? selectedRaw : null;
-
-  if (selectedRaw && !selected) {
-    delete progress[todayKey];
-    saveUserProgress(currentUser.email, progress);
-  }
 
   dayLabel.textContent = `${t("todayPrefix")}: ${formatDay(todayKey)}`;
   tasksList.innerHTML = "";
@@ -676,35 +618,36 @@ function renderDayTasks() {
   tasks.forEach((task) => {
     const card = document.createElement("article");
     const button = document.createElement("button");
-    const done = Boolean(selected && selected.id === task.id);
     const title = currentLang === "en" ? task.titleEn : task.titleUk;
 
-    card.className = `task-item ${done ? "done" : ""}`.trim();
+    card.className = "task-item";
     card.innerHTML = `<h5>${title}</h5><p>+${task.points} ${t("pointsWord")} • ${t("accuracyWord")} ${task.accuracy}%</p>`;
 
     button.type = "button";
-    button.textContent = done ? t("done") : t("chooseTask");
-    button.disabled = Boolean(selected);
-    button.addEventListener("click", () => {
-      if (selected) return;
-      openTaskModal(task, todayKey);
-    });
+    button.textContent = t("chooseTask");
+    button.addEventListener("click", () => openTaskModal(task, todayKey));
 
     card.appendChild(button);
     tasksList.appendChild(card);
   });
 }
 
-function renderWeekStats() {
-  if (!currentUser) return;
-  const progress = getUserProgress(currentUser.email);
+function renderWeekStats(submissions) {
   weekStats.innerHTML = "";
+  const latestByDay = new Map();
+
+  submissions.forEach((item) => {
+    const current = latestByDay.get(item.day_key);
+    if (!current || item.ts > current.ts) {
+      latestByDay.set(item.day_key, item);
+    }
+  });
 
   DAY_KEYS.forEach((dayKey) => {
     const row = document.createElement("div");
     const bar = document.createElement("div");
     const fill = document.createElement("div");
-    const info = progress[dayKey];
+    const info = latestByDay.get(dayKey);
 
     row.className = "day-row";
     bar.className = "day-bar";
@@ -723,31 +666,9 @@ function renderWeekStats() {
   });
 }
 
-function getLeaderboardRows() {
-  const submissions = getSubmissions();
-  const acc = new Map();
-
-  submissions.forEach((item) => {
-    const key = item.email;
-    const row = acc.get(key) || { name: item.name, email: item.email, points: 0, accuracySum: 0, count: 0 };
-    row.points += item.points;
-    row.accuracySum += item.accuracy;
-    row.count += 1;
-    acc.set(key, row);
-  });
-
-  return [...acc.values()]
-    .map((row) => {
-      const accuracy = row.count ? Math.round(row.accuracySum / row.count) : 0;
-      const rating = Math.round(row.points * 1.55 + accuracy * 4.2);
-      return { ...row, accuracy, rating };
-    })
-    .sort((a, b) => b.rating - a.rating);
-}
-
-function renderLeaderboard() {
+async function renderLeaderboard() {
   leaderboardBody.innerHTML = "";
-  const rows = getLeaderboardRows();
+  const rows = await api("/api/leaderboard");
 
   if (!rows.length) {
     const tr = document.createElement("tr");
@@ -758,7 +679,7 @@ function renderLeaderboard() {
 
   rows.forEach((row, idx) => {
     const tr = document.createElement("tr");
-    if (currentUser && row.email === currentUser.email) tr.classList.add("current-user");
+    if (sessionUser && row.email === sessionUser.email) tr.classList.add("current-user");
     tr.innerHTML = `
       <td>${idx + 1}</td>
       <td>${row.name}</td>
@@ -770,9 +691,9 @@ function renderLeaderboard() {
   });
 }
 
-function renderAdminLog() {
+async function renderAdminLog() {
   adminLogBody.innerHTML = "";
-  if (!isAdmin(currentUser)) {
+  if (!isAdmin(sessionUser)) {
     adminSection.classList.add("hidden");
     comingSoonSection.classList.remove("hidden");
     return;
@@ -780,19 +701,21 @@ function renderAdminLog() {
 
   adminSection.classList.remove("hidden");
   comingSoonSection.classList.add("hidden");
-  const submissions = [...getSubmissions()].sort((a, b) => b.ts - a.ts);
 
-  if (!submissions.length) {
+  const submissions = await api("/api/submissions");
+  const sorted = [...submissions].sort((a, b) => b.ts - a.ts);
+
+  if (!sorted.length) {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td colspan="5">${t("noAdminData")}</td>`;
     adminLogBody.appendChild(tr);
     return;
   }
 
-  submissions.forEach((item) => {
+  sorted.forEach((item) => {
     const tr = document.createElement("tr");
     const locale = currentLang === "en" ? "en-US" : "uk-UA";
-    const taskTitle = currentLang === "en" ? item.taskTitleEn : item.taskTitleUk;
+    const taskTitle = currentLang === "en" ? item.task_title_en : item.task_title_uk;
     tr.innerHTML = `
       <td>${new Date(item.ts).toLocaleString(locale)}</td>
       <td>${item.name} (${item.email})</td>
@@ -816,31 +739,31 @@ function updateLiveTimestamp() {
   ratingUpdated.textContent = `${t("updated")}: ${now.toLocaleTimeString(locale)}`;
 }
 
-function renderDashboard() {
-  if (!currentUser) return;
+async function renderDashboard() {
+  if (!sessionUser) return;
 
-  const progress = getUserProgress(currentUser.email);
-  const stats = computeStats(progress);
+  const submissions = await api("/api/submissions/me");
+  const stats = computeStats(submissions);
 
-  welcomeTitle.textContent = `${t("welcomePrefix")}, ${currentUser.name}`;
-  userMeta.textContent = `${currentUser.faculty} • ${t("courseWord")} ${currentUser.course || "-"}`;
+  welcomeTitle.textContent = `${t("welcomePrefix")}, ${sessionUser.name}`;
+  userMeta.textContent = `${sessionUser.faculty} • ${t("courseWord")} ${sessionUser.course || "-"}`;
 
   pointsValue.textContent = `${stats.totalPoints}`;
   accuracyValue.textContent = `${stats.avgAccuracy}%`;
   totalRating.textContent = `${stats.dynamicRating}`;
 
-  renderDayTasks();
-  renderWeekStats();
-  renderLeaderboard();
-  renderAdminLog();
+  await renderDayTasks();
+  renderWeekStats(submissions);
+  await renderLeaderboard();
+  await renderAdminLog();
   updateLiveTimestamp();
 }
 
-function openApp() {
+async function openApp() {
   authSection.classList.add("hidden");
   appSection.classList.remove("hidden");
   settingsButton.classList.remove("hidden");
-  renderDashboard();
+  await renderDashboard();
 
   if (clockTimer) clearInterval(clockTimer);
   clockTimer = setInterval(updateLiveTimestamp, 1000);
@@ -854,8 +777,10 @@ function logout() {
   settingsButton.classList.add("hidden");
   adminSection.classList.add("hidden");
 
-  currentUser = null;
+  sessionUser = null;
+  sessionToken = null;
   setStorage("pi_session_user", null);
+  setStorage("pi_session_token", null);
 
   switchTo("login");
   loginForm.reset();
@@ -867,74 +792,43 @@ function logout() {
   }
 }
 
-function deleteCurrentAccount() {
-  if (!currentUser) return;
-  if (isAdmin(currentUser)) {
-    showMessage(t("deleteAdminBlocked"), "error");
-    closeSettings();
-    return;
-  }
-
+async function deleteCurrentAccount() {
+  if (!sessionUser) return;
   const ok = window.confirm(t("deleteConfirm"));
   if (!ok) return;
-
-  deleteUserData(currentUser.email);
-  closeSettings();
-  appSection.classList.add("hidden");
-  authSection.classList.remove("hidden");
-  settingsButton.classList.add("hidden");
-  adminSection.classList.add("hidden");
-
-  currentUser = null;
-  setStorage("pi_session_user", null);
-  switchTo("login");
-  loginForm.reset();
-  showMessage(t("deleteSuccess"), "success");
+  try {
+    await api("/api/submissions", { method: "DELETE" });
+    showMessage(t("deleteSuccess"), "success");
+    logout();
+  } catch (err) {
+    showMessage(t("deleteAdminBlocked"), "error");
+  }
 }
 
-function submitTaskAnswer() {
-  if (!activeTask || !currentUser) return;
+async function submitTaskAnswer() {
+  if (!activeTask || !sessionUser) return;
   const answer = taskAnswer.value.trim();
   if (!answer) {
     showMessage(t("answerRequired"), "error");
     return;
   }
 
-  const progress = getUserProgress(currentUser.email);
-  progress[activeTask.dayKey] = {
-    ...activeTask.task,
-    answer,
-    dateKey: getDateKey()
-  };
-  saveUserProgress(currentUser.email, progress);
-
-  const submissions = getSubmissions();
-  const idx = submissions.findIndex(
-    (item) => item.email === currentUser.email && item.dayKey === activeTask.dayKey && item.dateKey === getDateKey()
-  );
-
-  const record = {
-    email: currentUser.email,
-    name: currentUser.name,
-    course: currentUser.course,
-    faculty: currentUser.faculty,
-    dayKey: activeTask.dayKey,
-    dateKey: getDateKey(),
-    taskId: activeTask.task.id,
-    taskTitleUk: activeTask.task.titleUk,
-    taskTitleEn: activeTask.task.titleEn,
-    points: activeTask.task.points,
-    accuracy: activeTask.task.accuracy,
-    answer,
-    ts: Date.now()
-  };
-
-  if (idx >= 0) submissions[idx] = record;
-  else submissions.push(record);
-  saveSubmissions(submissions);
+  await api("/api/submissions", {
+    method: "POST",
+    body: JSON.stringify({
+      day_key: activeTask.dayKey,
+      date_key: getDateKey(),
+      task_id: activeTask.task.id,
+      task_title_uk: activeTask.task.titleUk,
+      task_title_en: activeTask.task.titleEn,
+      points: activeTask.task.points,
+      accuracy: activeTask.task.accuracy,
+      answer
+    })
+  });
 
   closeTaskModal();
-  renderDashboard();
+  await renderDashboard();
 }
 
 showLoginBtn.addEventListener("click", () => switchTo("login"));
@@ -961,7 +855,7 @@ taskModal.addEventListener("click", (event) => {
   if (event.target === taskModal) closeTaskModal();
 });
 
-registerForm.addEventListener("submit", (event) => {
+registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const name = registerName.value.trim();
@@ -975,66 +869,57 @@ registerForm.addEventListener("submit", (event) => {
     return;
   }
 
-  if (email === ADMIN_USER.email) {
-    showMessage(t("emailReserved"), "error");
-    return;
+  try {
+    const result = await api("/api/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, course, faculty, password })
+    });
+
+    showMessage(result.email_sent ? t("emailSent") : t("emailNotSent"), "success");
+    registerForm.reset();
+
+    await loginWithCredentials(email, password);
+  } catch (err) {
+    const text = (err && err.message) || "";
+    if (text.includes("reserved")) showMessage(t("emailReserved"), "error");
+    else if (text.includes("domain")) showMessage(t("emailDomainOnly"), "error");
+    else if (text.includes("exists")) showMessage(t("emailExists"), "error");
+    else showMessage(t("registerFirst"), "error");
   }
-
-  if (!email.endsWith(REQUIRED_DOMAIN)) {
-    showMessage(t("emailDomainOnly"), "error");
-    return;
-  }
-
-  const users = getUsers();
-  if (users.some((u) => u.email === email)) {
-    showMessage(t("emailExists"), "error");
-    return;
-  }
-
-  const user = { name, email, course, faculty, password };
-  users.push(user);
-  saveUsers(users);
-
-  currentUser = user;
-  setStorage("pi_session_user", user);
-
-  showMessage(t("registerSuccess"), "success");
-  registerForm.reset();
-  openApp();
 });
 
-loginForm.addEventListener("submit", (event) => {
+async function loginWithCredentials(email, password) {
+  const token = btoa(`${email}:${password}`);
+  sessionToken = token;
+  setStorage("pi_session_token", token);
+
+  const loginData = await api("/api/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
+  });
+
+  sessionUser = loginData.user;
+  setStorage("pi_session_user", sessionUser);
+  await openApp();
+}
+
+loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const email = loginEmail.value.trim().toLowerCase();
   const password = loginPassword.value;
 
-  if (email === ADMIN_USER.email && password === ADMIN_USER.password) {
-    currentUser = { ...ADMIN_USER };
-    setStorage("pi_session_user", currentUser);
-    openApp();
-    return;
-  }
-
-  const users = getUsers();
-
-  if (!users.length) {
-    showMessage(t("registerFirst"), "error");
-    return;
-  }
-
-  const matched = users.find((u) => u.email === email && u.password === password);
-  if (!matched) {
+  try {
+    await loginWithCredentials(email, password);
+  } catch (err) {
     showMessage(t("invalidCreds"), "error");
-    return;
   }
-
-  currentUser = matched;
-  setStorage("pi_session_user", matched);
-  openApp();
 });
 
 ensureMathSymbols();
-cleanupReservedAccounts();
 applyLanguage();
+sessionUser = null;
+sessionToken = null;
+setStorage("pi_session_user", null);
+setStorage("pi_session_token", null);
 switchTo("login");
