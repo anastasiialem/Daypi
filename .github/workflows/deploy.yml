@@ -16,23 +16,19 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
+          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }} # Keep or remove depending on your key setup
           script: |
-            # 1. Navigate to the repository root
+            # 1. Navigate to the correct repository root
             cd /var/www/daypi
-
 
             # 2. Force the server to exactly match the main branch on GitHub
             git fetch --all
             git reset --hard origin/main
 
-            # 3. Navigate into the Django project directory
-            cd Daypi
+            # 3. Use the absolute path to the virtual environment
+            /var/www/daypi/venv/bin/pip install -r requirements.txt
+            /var/www/daypi/venv/bin/python manage.py migrate
+            /var/www/daypi/venv/bin/python manage.py collectstatic --noinput
 
-            # 4. Use the absolute path to the virtual environment (bypasses the 'source' command entirely)
-            /var/www/daypi/Daypi/venv/bin/pip install -r requirements.txt
-            /var/www/daypi/Daypi/venv/bin/python manage.py migrate
-            /var/www/daypi/Daypi/venv/bin/python manage.py collectstatic --noinput
-
-            # 5. Restart the server to apply changes
+            # 4. Restart the server to apply changes
             sudo systemctl restart daypi
