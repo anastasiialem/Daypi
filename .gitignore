@@ -57,3 +57,8 @@ htmlcov/
 # OS/System generated
 Thumbs.db
 Desktop.ini
+
+
+#list of tasks
+daypi.json
+daypi.db
