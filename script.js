@@ -334,6 +334,7 @@ function authHeaders() {
 
 async function api(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
@@ -846,7 +847,12 @@ async function openApp() {
     console.error("Config fetch failed", e);
   }
 
-  await renderDashboard();
+  try {
+    await renderDashboard();
+  } catch (err) {
+    console.error("Dashboard fetch failed:", err);
+    throw err; // Re-throw to propagate if login flow needs to know
+  }
 
   if (clockTimer) clearInterval(clockTimer);
   clockTimer = setInterval(updateLiveTimestamp, 1000);
@@ -994,8 +1000,9 @@ registerForm.addEventListener("submit", async (event) => {
     try {
       await loginWithCredentials(email, password);
     } catch (loginErr) {
+      console.error("Auto login failed:", loginErr);
       switchTo("login");
-      showMessage(result.email_sent ? t("emailSent") : "Реєстрація успішна, увійдіть вручну.", "success");
+      showMessage("Автоматичний вхід відхилено. Будь ласка, авторизуйтесь вручну.", "error");
     }
   } catch (err) {
     const text = (err && err.message) || "";
