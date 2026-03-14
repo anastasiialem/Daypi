@@ -589,7 +589,11 @@ function buildDailyTasks(dayKey, targetDate) {
     });
   }
 
-  forcedTasks.forEach((tmpl, i) => {
+  // Only show email-restricted (forced) tasks on their assigned day, or every day if day_assigned is 0
+  const forcedForThisDay = forcedTasks.filter(
+    (tmpl) => tmpl.day_assigned === 0 || tmpl.day_assigned === targetProperty
+  );
+  forcedForThisDay.forEach((tmpl, i) => {
     const conditions = tmpl.build(rnd);
     const points = tmpl.fixed_points != null && tmpl.fixed_points !== "" ? parseInt(tmpl.fixed_points) : 15 + Math.floor(rnd() * 10);
     const accuracy = tmpl.fixed_accuracy != null && tmpl.fixed_accuracy !== "" ? parseInt(tmpl.fixed_accuracy) : 85 + Math.floor(rnd() * 15);
