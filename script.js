@@ -29,7 +29,7 @@ const I18N = {
     registerSubmit: "Зареєструватися",
     pointsHeaderLabel: "Загальні бали",
     tasksTitle: "2 задачі на день",
-    tasksDescription: "Щодня доступно 2 задачі. За вирішення найкращої ти отримаєш бали. Друга — для тренування!",
+    tasksDescription: "Щодня доступно 2 задачі. За вирішення найкращої ти отримаєш бали. ІНША — для тренування!",
     pointsLabel: "Бали акаунту",
     accuracyLabel: "Середня правильність",
     weekTitle: "Статистика задач по днях",
@@ -770,10 +770,10 @@ async function renderDayTasks(submissions) {
     card.className = "task-item";
     let subInfo = `+${task.points} ${t("pointsWord")} • ${t("accuracyWord")} ${task.accuracy}%`;
     if (task.tags) {
-      let tagsDisplay = task.tags.split(',').map(tag => `<span style="background:#4CAF50; color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-right:4px;">${tag.trim()}</span>`).join('');
+      let tagsDisplay = task.tags.split(',').map(tag => `<span style="background:#4CAF50; color:white; padding:2px 6px; border-radius:4px; font-size:0.7em; margin-right:4px;">${escapeHTML(tag.trim())}</span>`).join('');
       subInfo += `<br><div style="margin-top:6px;">${tagsDisplay}</div>`;
     }
-    card.innerHTML = `<h5>${title}</h5><p>${subInfo}</p>`;
+    card.innerHTML = `<h5>${escapeHTML(title)}</h5><p>${subInfo}</p>`;
 
     const taskSubmissions = submissions
       .filter((s) => s.task_id === task.id && s.day_key === activeDayKey)

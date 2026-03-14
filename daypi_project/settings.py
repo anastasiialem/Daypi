@@ -68,7 +68,12 @@ if "postgresql" in DB_ENGINE:
         "PORT": os.getenv("DB_PORT", "5432"),
     })
 
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 LANGUAGE_CODE = "uk"
 TIME_ZONE = "Europe/Kyiv"
@@ -89,6 +94,7 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = os.getenv("SMTP_FROM", EMAIL_HOST_USER or "no-reply@ucu.edu.ua")
 EMAIL_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", "5"))
 
-ADMIN_EMAIL = "lem.pn@ucu.edu.ua"
-ADMIN_PASSWORD = "200820"
-REQUIRED_DOMAIN = "@ucu.edu.ua"
+# Admin and registration: set in .env for production; do not commit real credentials
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "lem.pn@ucu.edu.ua")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "200820")
+REQUIRED_DOMAIN = os.getenv("REQUIRED_DOMAIN", "@ucu.edu.ua")

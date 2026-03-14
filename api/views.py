@@ -18,7 +18,7 @@ def _read_config():
     if CONFIG_PATH.exists():
         try:
             return json.loads(CONFIG_PATH.read_text("utf-8"))
-        except:
+        except (json.JSONDecodeError, OSError):
             pass
     return {"tasks_open": False, "custom_tasks": []}
 
@@ -41,7 +41,12 @@ def config(request):
         payload = json_from_request(request)
     except ValueError:
         return JsonResponse({"ok": False}, status=400)
-        
+
+    # Basic sanity: avoid huge config (DoS / disk fill)
+    raw = request.body
+    if len(raw) > 2 * 1024 * 1024:  # 2 MB max
+        return JsonResponse({"ok": False, "detail": "Config too large"}, status=400)
+
     _write_config(payload)
     return JsonResponse({"ok": True})
 
@@ -210,16 +215,36 @@ def submissions(request):
     except ValueError:
         return JsonResponse({"ok": False, "message": "Invalid JSON"}, status=400)
 
+    # Validate and cap to prevent leaderboard cheating and oversized payloads
+    day_key = (payload.get("day_key") or "")[:8]
+    date_key = (payload.get("date_key") or "")[:16]
+    task_id = (payload.get("task_id") or "")[:64]
+    task_title_uk = (payload.get("task_title_uk") or "")[:128]
+    task_title_en = (payload.get("task_title_en") or "")[:128]
+    answer = (payload.get("answer") or "")[:2000]
+    try:
+        # Hard cap: at most 2 points per submission to prevent cheating
+        points = max(0, min(2, int(payload.get("points", 0))))
+    except (TypeError, ValueError):
+        points = 0
+    try:
+        accuracy = max(0, min(100, int(payload.get("accuracy", 0))))
+    except (TypeError, ValueError):
+        accuracy = 0
+
+    if day_key not in ("day1", "day2", "day3", "day4", "day5"):
+        return JsonResponse({"ok": False, "message": "Invalid day_key"}, status=400)
+
     Submission.objects.create(
         user=user,
-        day_key=payload.get("day_key", ""),
-        date_key=payload.get("date_key", ""),
-        task_id=payload.get("task_id", ""),
-        task_title_uk=payload.get("task_title_uk", ""),
-        task_title_en=payload.get("task_title_en", ""),
-        points=int(payload.get("points", 0)),
-        accuracy=int(payload.get("accuracy", 0)),
-        answer=payload.get("answer", ""),
+        day_key=day_key,
+        date_key=date_key,
+        task_id=task_id,
+        task_title_uk=task_title_uk,
+        task_title_en=task_title_en,
+        points=points,
+        accuracy=accuracy,
+        answer=answer,
     )
 
     return JsonResponse({"ok": True})
@@ -301,6 +326,14 @@ def leaderboard(request):
         )
 
     result.sort(key=lambda x: x["points"], reverse=True)
+
+    # Add faculty for leaderboard search-by-faculty
+    emails = [item["email"] for item in result]
+    profiles = Profile.objects.filter(user__email__in=emails).values("user__email", "faculty")
+    faculty_by_email = {p["user__email"]: (p["faculty"] or "") for p in profiles}
+    for item in result:
+        item["faculty"] = faculty_by_email.get(item["email"], "")
+
     return JsonResponse(result, safe=False)
 
 
