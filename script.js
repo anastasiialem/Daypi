@@ -590,9 +590,11 @@ function buildDailyTasks(dayKey, targetDate) {
   }
 
   // Only show email-restricted (forced) tasks on their assigned day, or every day if day_assigned is 0
-  const forcedForThisDay = forcedTasks.filter(
-    (tmpl) => tmpl.day_assigned === 0 || tmpl.day_assigned === targetProperty
-  );
+  const forcedForThisDay = forcedTasks.filter((tmpl) => {
+    const assigned = parseInt(tmpl.day_assigned, 10);
+    const dayNum = Number.isNaN(assigned) ? 0 : assigned;
+    return dayNum === 0 || dayNum === targetProperty;
+  });
   forcedForThisDay.forEach((tmpl, i) => {
     const conditions = tmpl.build(rnd);
     const points = tmpl.fixed_points != null && tmpl.fixed_points !== "" ? parseInt(tmpl.fixed_points) : 15 + Math.floor(rnd() * 10);
