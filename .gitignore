@@ -59,6 +59,6 @@ Thumbs.db
 Desktop.ini
 
 
-#list of tasks
-daypi.json
+# DB only (keep out of repo; config/tasks live in daypi.json and ARE committed)
+# daypi.json — REMOVED from ignore so tasks deploy with the repo and aren’t wiped on git pull
 daypi.db
