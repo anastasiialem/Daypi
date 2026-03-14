@@ -256,36 +256,48 @@ def submissions_all(request):
 @require_http_methods(["GET"])
 def leaderboard(request):
     rows = Submission.objects.select_related("user")
-    acc = {}
+    user_day_best = {}
+    
     for row in rows:
-        key = row.user.email
-        item = acc.get(key) or {
-            "name": row.user.first_name,
-            "email": row.user.email,
+        email = row.user.email
+        day = row.day_key
+        key = (email, day)
+        
+        current = user_day_best.get(key)
+        if not current:
+            user_day_best[key] = {"name": row.user.first_name, "points": row.points, "accuracy": row.accuracy}
+        else:
+            if row.points > current["points"] or (row.points == current["points"] and row.accuracy > current["accuracy"]):
+                user_day_best[key]["points"] = row.points
+                user_day_best[key]["accuracy"] = row.accuracy
+
+    acc = {}
+    for (email, day), best in user_day_best.items():
+        item = acc.get(email) or {
+            "name": best["name"],
+            "email": email,
             "points": 0,
             "accuracy_sum": 0,
             "count": 0,
         }
-        item["points"] += row.points
-        item["accuracy_sum"] += row.accuracy
+        item["points"] += best["points"]
+        item["accuracy_sum"] += best["accuracy"]
         item["count"] += 1
-        acc[key] = item
+        acc[email] = item
 
     result = []
     for item in acc.values():
         accuracy = round(item["accuracy_sum"] / item["count"]) if item["count"] else 0
-        rating = round(item["points"] * 1.55 + accuracy * 4.2)
         result.append(
             {
                 "name": item["name"],
                 "email": item["email"],
                 "points": item["points"],
                 "accuracy": accuracy,
-                "rating": rating,
             }
         )
 
-    result.sort(key=lambda x: x["rating"], reverse=True)
+    result.sort(key=lambda x: x["points"], reverse=True)
     return JsonResponse(result, safe=False)
 
 

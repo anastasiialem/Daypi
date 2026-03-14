@@ -73,23 +73,26 @@
           <p id="user-meta" class="muted"></p>
         </div>
         <div class="rating-box">
-          <p id="rating-label">Загальний рейтинг</p>
+          <p id="points-header-label">Загальні бали</p>
           <strong id="total-rating">0</strong>
           <small id="rating-updated">Оновлено: --:--:--</small>
         </div>
       </header>
 
       <section class="task-panel">
-        <div class="task-head">
-          <h4 id="tasks-title">3 задачі на день</h4>
-          <span id="day-label" class="pill"></span>
+        <div class="task-head" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <button id="prev-day-btn" class="modal-btn"
+            style="width:auto; padding:4px 8px; font-size:1.1em; background:transparent; color:#6b52c3; border: 1px solid #6b52c3;">&lt;</button>
+
+          <div style="text-align:center;">
+            <span id="day-label" class="pill" style="margin:0;"></span>
+          </div>
+
+          <button id="next-day-btn" class="modal-btn"
+            style="width:auto; padding:4px 8px; font-size:1.1em; background:transparent; color:#6b52c3; border: 1px solid #6b52c3;">&gt;</button>
         </div>
-        <p id="tasks-description" class="muted">Щодня доступно 3 довільні задачі. Обери задачу, розв'яжи її у вікні та
-          отримай бали.</p>
-        <div id="tasks-coming-soon" class="coming-soon">
-          <h5 id="tasks-coming-title">Coming soon</h5>
-          <p id="tasks-coming-text">Задачі будуть доступні з 14.03 (субота) до 21.03.</p>
-        </div>
+        <p id="tasks-description" class="muted">Щодня доступно 2 довільні задачі. За вирішення одної (найдорожчої) ти
+          отримаєш бали. Інша задача - для тренування.</p>
         <div id="tasks-list" class="tasks-list hidden"></div>
       </section>
 
@@ -124,7 +127,6 @@
                 <th id="lb-col-name">Ім'я</th>
                 <th id="lb-col-points">Бали</th>
                 <th id="lb-col-accuracy">Точність</th>
-                <th id="lb-col-rating">Рейтинг</th>
               </tr>
             </thead>
             <tbody id="leaderboard-body"></tbody>
@@ -135,10 +137,13 @@
       <section id="admin-section" class="admin-panel hidden">
         <div class="leaderboard-head">
           <h4 id="admin-title">Адмін журнал</h4>
-          <div style="display:flex; gap:10px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
             <button id="btn-toggle-tasks" class="modal-btn modal-secondary"
               style="padding: 6px 12px; font-size: 0.9em; width: auto; background:#333; color:white;">Відкрити
               задачі</button>
+            <button id="btn-lock-points" class="modal-btn modal-secondary"
+              style="padding: 6px 12px; font-size: 0.9em; width: auto; background:#7b1fa2; color:white;">🔒 Бали
+              закриті</button>
             <a href="/admin-panel" class="modal-btn"
               style="padding: 6px 12px; font-size: 0.9em; width: auto; text-decoration:none; color:white;">Панель
               керування задачами</a>
@@ -160,13 +165,6 @@
         </div>
       </section>
 
-      <section id="coming-soon-section" class="admin-panel hidden">
-        <div class="leaderboard-head">
-          <h4 id="coming-soon-title">Coming soon</h4>
-        </div>
-        <p id="coming-soon-text" class="muted">Функції для користувачів будуть доступні незабаром.</p>
-      </section>
-    </section>
   </main>
 
   <button id="settings-button" class="settings-btn hidden" type="button" aria-label="Налаштування">⚙</button>
@@ -204,11 +202,14 @@
       <h3 id="task-modal-title">Умова задачі</h3>
       <img id="task-modal-image" class="hidden" style="max-width:100%; border-radius:8px; margin-bottom:15px;" />
       <p id="task-modal-condition" style="font-size:1.1em;"></p>
-      <label id="answer-label" for="task-answer">Відповідь</label>
-      <textarea id="task-answer" rows="4" placeholder="Введіть відповідь..."></textarea>
-      <p id="symbols-label" class="symbols-label">Математичні символи:</p>
-      <div id="math-symbols" class="math-symbols"></div>
-      <button id="submit-answer-button" class="modal-btn" type="button">Надіслати відповідь</button>
+      <div id="task-modal-already-solved" class="hidden" style="padding:10px; background:rgba(76,175,80,0.15); border:1px solid rgba(76,175,80,0.4); border-radius:8px; color:#2e7d32; margin-bottom:12px;"></div>
+      <div id="task-modal-answer-form">
+        <label id="answer-label" for="task-answer">Відповідь</label>
+        <textarea id="task-answer" rows="4" placeholder="Введіть відповідь..."></textarea>
+        <p id="symbols-label" class="symbols-label">Математичні символи:</p>
+        <div id="math-symbols" class="math-symbols"></div>
+        <button id="submit-answer-button" class="modal-btn" type="button">Надіслати відповідь</button>
+      </div>
       <button id="cancel-task-button" class="modal-btn modal-secondary" type="button">Скасувати</button>
     </div>
   </div>

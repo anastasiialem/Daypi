@@ -67,6 +67,10 @@ function escapeHTML(str) {
     .replace(/'/g, "&#039;");
 }
 
+function generateTaskId() {
+  return "task_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 11);
+}
+
 function renderTasks() {
   tasksContainer.innerHTML = "";
   serverConfig.custom_tasks = serverConfig.custom_tasks || [];
@@ -77,6 +81,7 @@ function renderTasks() {
   }
 
   serverConfig.custom_tasks.forEach((task, index) => {
+    const isScored = task.is_scored !== false; // default: scored unless explicitly turned off
     const card = document.createElement("div");
     card.className = "task-card";
     
@@ -137,8 +142,27 @@ function renderTasks() {
              <span style="color:#ffaa00;">Приховати задачу (вона більше не буде випадати користувачам)</span>
           </label>
       </div>
+
+      <div style="margin-top:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+             <input type="checkbox" id="t-is-scored-${index}" ${isScored ? 'checked' : ''} style="width:auto; height:18px; width:18px;" />
+             <span style="color:#2e7d32;">SUBMISSION IS TAKEN (якщо вимкнено — правильна відповідь не дає балів)</span>
+          </label>
+      </div>
+
+      <div style="margin-top:10px;">
+          <label class="muted">Прив'язка до конкретного дня (0 - автоматично):</label>
+          <select id="t-day-assigned-${index}" style="padding:6px; background:#fff; border:1px solid #ccc; border-radius:4px; font-size:0.9em;">
+             <option value="0" ${parseInt(task.day_assigned||0) === 0 ? 'selected' : ''}>Автоматично (за порядком)</option>
+             <option value="1" ${parseInt(task.day_assigned) === 1 ? 'selected' : ''}>День 1 (14.03)</option>
+             <option value="2" ${parseInt(task.day_assigned) === 2 ? 'selected' : ''}>День 2 (15.03)</option>
+             <option value="3" ${parseInt(task.day_assigned) === 3 ? 'selected' : ''}>День 3 (16.03)</option>
+             <option value="4" ${parseInt(task.day_assigned) === 4 ? 'selected' : ''}>День 4 (17.03)</option>
+             <option value="5" ${parseInt(task.day_assigned) === 5 ? 'selected' : ''}>День 5 (18.03)</option>
+          </select>
+      </div>
       
-      <button class="modal-btn" onclick="saveTask(${index})" style="width:100%; margin-top:10px; background:#4CAF50;">Зберегти редагування</button>
+      <button class="modal-btn" onclick="saveTask(${index})" style="width:100%; margin-top:15px; background:#4CAF50;">Зберегти редагування</button>
     `;
     
     tasksContainer.appendChild(card);
@@ -153,7 +177,10 @@ window.deleteTask = function(index) {
 }
 
 window.saveTask = function(index) {
+  const existing = serverConfig.custom_tasks[index];
+  const stableId = (existing && existing.id) ? existing.id : generateTaskId();
   serverConfig.custom_tasks[index] = {
+    id: stableId,
     production_name: document.getElementById(`t-prod-name-${index}`).value.trim(),
     titleUk: document.getElementById(`t-name-uk-${index}`).value.trim(),
     titleEn: document.getElementById(`t-name-en-${index}`).value.trim(),
@@ -165,17 +192,20 @@ window.saveTask = function(index) {
     answers: document.getElementById(`t-answers-${index}`).value.trim(),
     fixed_points: document.getElementById(`t-points-${index}`).value,
     fixed_accuracy: document.getElementById(`t-accuracy-${index}`).value,
-    is_hidden: document.getElementById(`t-hidden-${index}`).checked
+    is_hidden: document.getElementById(`t-hidden-${index}`).checked,
+    is_scored: document.getElementById(`t-is-scored-${index}`).checked,
+    day_assigned: parseInt(document.getElementById(`t-day-assigned-${index}`).value) || 0
   };
   saveConfig();
 }
 
 btnAddNew.addEventListener("click", () => {
   serverConfig.custom_tasks.unshift({
+     id: generateTaskId(),
      production_name: "",
      titleUk: "Нова задача",
      titleEn: "New task",
-     conditionUk: "", conditionEn: "", imgUrl: "", allowedEmails: "", tags: "", answers: "", fixed_points: "", fixed_accuracy: "", is_hidden: false
+     conditionUk: "", conditionEn: "", imgUrl: "", allowedEmails: "", tags: "", answers: "", fixed_points: "", fixed_accuracy: "", is_hidden: false, is_scored: true, day_assigned: 0
   });
   renderTasks();
 });

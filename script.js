@@ -1,9 +1,9 @@
 const API_BASE = "";
-const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+const DAY_KEYS = ["day1", "day2", "day3", "day4", "day5"];
 
 const DAY_LABELS = {
-  uk: { mon: "Пн", tue: "Вт", wed: "Ср", thu: "Чт", fri: "Пт", sat: "Сб", sun: "Нд" },
-  en: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" }
+  uk: { day1: "DAY 1 (14.03)", day2: "DAY 2 (15.03)", day3: "DAY 3 (16.03)", day4: "DAY 4 (17.03)", day5: "DAY 5 (18.03)" },
+  en: { day1: "DAY 1 (14.03)", day2: "DAY 2 (15.03)", day3: "DAY 3 (16.03)", day4: "DAY 4 (17.03)", day5: "DAY 5 (18.03)" }
 };
 
 const SYMBOLS = ["π", "√", "≈", "≠", "≤", "≥", "∞", "∑", "Δ", "°", "×", "÷", "^", "(", ")", "[", "]", "{", "}"];
@@ -27,11 +27,9 @@ const I18N = {
     course4: "Курс 4",
     registerPasswordPlaceholder: "Пароль",
     registerSubmit: "Зареєструватися",
-    ratingLabel: "Загальний рейтинг",
-    tasksTitle: "3 задачі на день",
-    tasksDescription: "Щодня доступно 3 довільні задачі. Обери задачу, розв'яжи її у вікні та отримай бали.",
-    tasksComingTitle: "Coming soon",
-    tasksComingText: "Задачі будуть доступні з 14.03 (субота) до 21.03.",
+    pointsHeaderLabel: "Загальні бали",
+    tasksTitle: "2 задачі на день",
+    tasksDescription: "Щодня доступно 2 задачі. За вирішення найкращої ти отримаєш бали. Друга — для тренування!",
     pointsLabel: "Бали акаунту",
     accuracyLabel: "Середня правильність",
     weekTitle: "Статистика задач по днях",
@@ -42,7 +40,6 @@ const I18N = {
     lbName: "Ім'я",
     lbPoints: "Бали",
     lbAccuracy: "Точність",
-    lbRating: "Рейтинг",
     noLeaderboardData: "Ще немає даних рейтингу",
     adminTitle: "Адмін журнал",
     adminColTime: "Час",
@@ -98,7 +95,8 @@ const I18N = {
     toggleTasksBtnClose: "Закрити задачі",
     tasksOpenSuccess: "Налаштування оновлено!",
     answerCorrect: "Правильно!",
-    answerWrong: "Неправильно!"
+    answerWrong: "Неправильно!",
+    alreadySolved: "Ви вже вирішили цю задачу. Подальші відповіді не приймаються."
   },
   en: {
     pageTitle: "Day of number pi",
@@ -118,11 +116,9 @@ const I18N = {
     course4: "Course 4",
     registerPasswordPlaceholder: "Password",
     registerSubmit: "Create account",
-    ratingLabel: "Overall rating",
-    tasksTitle: "3 tasks per day",
-    tasksDescription: "Every day you get 3 random tasks. Open one, solve it in the modal window and get points.",
-    tasksComingTitle: "Coming soon",
-    tasksComingText: "Tasks will be available from 14.03 (Saturday) to 21.03.",
+    pointsHeaderLabel: "Total points",
+    tasksTitle: "2 tasks per day",
+    tasksDescription: "Each day you get 2 tasks. Solve the best one for points — the other is for practice!",
     pointsLabel: "Account points",
     accuracyLabel: "Average accuracy",
     weekTitle: "Task stats by day",
@@ -133,7 +129,6 @@ const I18N = {
     lbName: "Name",
     lbPoints: "Points",
     lbAccuracy: "Accuracy",
-    lbRating: "Rating",
     noLeaderboardData: "No leaderboard data yet",
     adminTitle: "Admin Log",
     adminColTime: "Time",
@@ -189,7 +184,8 @@ const I18N = {
     toggleTasksBtnClose: "Close tasks",
     tasksOpenSuccess: "Settings updated!",
     answerCorrect: "Correct!",
-    answerWrong: "Wrong answer!"
+    answerWrong: "Wrong answer!",
+    alreadySolved: "You already solved this task. No further submissions allowed."
   }
 };
 
@@ -231,13 +227,9 @@ const tasksList = document.getElementById("tasks-list");
 const pointsValue = document.getElementById("points-value");
 const accuracyValue = document.getElementById("accuracy-value");
 const totalRating = document.getElementById("total-rating");
-const ratingLabel = document.getElementById("rating-label");
+const pointsHeaderLabel = document.getElementById("points-header-label");
 const ratingUpdated = document.getElementById("rating-updated");
-const tasksTitle = document.getElementById("tasks-title");
 const tasksDescription = document.getElementById("tasks-description");
-const tasksComingTitle = document.getElementById("tasks-coming-title");
-const tasksComingText = document.getElementById("tasks-coming-text");
-const tasksComingSoon = document.getElementById("tasks-coming-soon");
 const pointsLabel = document.getElementById("points-label");
 const accuracyLabel = document.getElementById("accuracy-label");
 const weekTitle = document.getElementById("week-title");
@@ -252,7 +244,6 @@ const lbColPlace = document.getElementById("lb-col-place");
 const lbColName = document.getElementById("lb-col-name");
 const lbColPoints = document.getElementById("lb-col-points");
 const lbColAccuracy = document.getElementById("lb-col-accuracy");
-const lbColRating = document.getElementById("lb-col-rating");
 
 const adminSection = document.getElementById("admin-section");
 const adminTitle = document.getElementById("admin-title");
@@ -262,10 +253,6 @@ const adminColUser = document.getElementById("admin-col-user");
 const adminColTask = document.getElementById("admin-col-task");
 const adminColPoints = document.getElementById("admin-col-points");
 const adminColAnswer = document.getElementById("admin-col-answer");
-
-const comingSoonSection = document.getElementById("coming-soon-section");
-const comingSoonTitle = document.getElementById("coming-soon-title");
-const comingSoonText = document.getElementById("coming-soon-text");
 
 const settingsTitle = document.getElementById("settings-title");
 const settingsQuestion = document.getElementById("settings-question");
@@ -282,12 +269,28 @@ const mathSymbols = document.getElementById("math-symbols");
 const submitAnswerButton = document.getElementById("submit-answer-button");
 const cancelTaskButton = document.getElementById("cancel-task-button");
 
+const adminContent = document.getElementById("admin-content");
+const tasksContainer = document.getElementById("tasks-container");
+const btnAddNew = document.getElementById("btn-add-new");
+const btnPrevDay = document.getElementById("prev-day-btn");
+const btnNextDay = document.getElementById("next-day-btn");
+
 const btnOpenAddTask = document.getElementById("btn-open-add-task");
 const btnToggleTasks = document.getElementById("btn-toggle-tasks");
 
 const taskModalImage = document.getElementById("task-modal-image");
 
 let serverConfig = { tasks_open: false, custom_tasks: [] };
+
+function getLogicalToday() {
+  const d = new Date();
+  if (d.getHours() < 13) {
+    d.setDate(d.getDate() - 1); // Before 13:00 still counts as yesterday
+  }
+  return d;
+}
+
+let activeViewingDate = getLogicalToday();
 
 let currentLang = getStorage("pi_lang", "uk");
 let sessionUser = getStorage("pi_session_user", null);
@@ -296,6 +299,7 @@ let clockTimer = null;
 let isLeaderboardOpen = false;
 let activeTask = null;
 let cachedLeaderboardRows = [];
+let lastUserSubmissions = [];
 
 function t(key) {
   return I18N[currentLang][key] || I18N.uk[key] || key;
@@ -308,6 +312,17 @@ function escapeHTML(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function isSubmissionCorrectForTask(task, submission) {
+  if (!submission) return false;
+  const expected = task.answers;
+  const userAnswer = (submission.answer || "").trim().toLowerCase();
+  if (expected && expected.trim() !== "") {
+    const list = expected.split(",").map((a) => a.trim().toLowerCase()).filter(Boolean);
+    if (list.length > 0) return list.includes(userAnswer);
+  }
+  return submission.points > 0;
 }
 
 function getStorage(key, fallback) {
@@ -355,20 +370,34 @@ function isAdmin(user) {
   return Boolean(user && user.is_admin);
 }
 
+function getCompetitionDayIndex(d) {
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  if (m === 3) {
+    if (day === 14) return 0;
+    if (day === 15) return 1;
+    if (day === 16) return 2;
+    if (day === 17) return 3;
+    if (day === 18) return 4;
+  }
+  // If outside range (for testing or before start), bound to nearest day or 0
+  if (m < 3 || (m === 3 && day < 14)) return 0;
+  return 4;
+}
+
 function getTodayIndex() {
-  const jsDay = new Date().getDay();
-  return jsDay === 0 ? 6 : jsDay - 1;
+  return getCompetitionDayIndex(getLogicalToday());
 }
 
 function getTodayKey() {
   return DAY_KEYS[getTodayIndex()];
 }
 
-function getDateKey() {
-  const now = new Date();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${m}-${d}`;
+function getDateKey(d = null) {
+  d = d || getLogicalToday();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const d_str = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${d_str}`;
 }
 
 function hashString(value) {
@@ -415,7 +444,7 @@ function closeSettings() {
 function openTaskModal(task, dayKey) {
   activeTask = { task, dayKey };
   taskModalCondition.textContent = currentLang === "en" ? task.conditionEn : task.conditionUk;
-  
+
   if (task.imgUrl) {
     taskModalImage.src = task.imgUrl;
     taskModalImage.classList.remove("hidden");
@@ -425,14 +454,26 @@ function openTaskModal(task, dayKey) {
   }
 
   taskAnswer.value = "";
-  taskModal.classList.remove("hidden");
-  
-  // Render LaTeX using MathJax if loaded
-  if (window.MathJax) {
-    window.MathJax.typesetPromise([taskModalCondition]).catch(() => {});
+
+  const subsForTask = lastUserSubmissions.filter((s) => s.task_id === task.id && s.day_key === dayKey);
+  const alreadySolved = subsForTask.some((s) => isSubmissionCorrectForTask(task, s));
+
+  const answerForm = document.getElementById("task-modal-answer-form");
+  const alreadySolvedEl = document.getElementById("task-modal-already-solved");
+  if (answerForm) {
+    answerForm.classList.toggle("hidden", !!alreadySolved);
+  }
+  if (alreadySolvedEl) {
+    alreadySolvedEl.classList.toggle("hidden", !alreadySolved);
+    alreadySolvedEl.textContent = t("alreadySolved");
   }
 
-  taskAnswer.focus();
+  taskModal.classList.remove("hidden");
+
+  if (window.MathJax) {
+    window.MathJax.typesetPromise([taskModalCondition]).catch(() => { });
+  }
+  if (!alreadySolved) taskAnswer.focus();
 }
 
 function closeTaskModal() {
@@ -441,36 +482,51 @@ function closeTaskModal() {
 }
 
 function computeStats(items) {
-  const totalPoints = items.reduce((sum, item) => sum + item.points, 0);
+  // We only count the MAXIMUM points earned on any specific day key to adhere to the rule
+  const dayMaxPoints = new Map();
+  items.forEach(item => {
+    if (item.points > 0) {
+      const existing = dayMaxPoints.get(item.day_key) || 0;
+      if (item.points > existing) {
+        dayMaxPoints.set(item.day_key, item.points);
+      }
+    }
+  });
+
+  const totalPoints = Array.from(dayMaxPoints.values()).reduce((sum, pts) => sum + pts, 0);
+
   const avgAccuracy = items.length
     ? Math.round(items.reduce((sum, item) => sum + item.accuracy, 0) / items.length)
     : 0;
-  const dynamicRating = Math.round(totalPoints * 1.55 + avgAccuracy * 4.2);
 
-  return { totalPoints, avgAccuracy, dynamicRating };
+  return { totalPoints, avgAccuracy };
 }
 
-function buildDailyTasks(dayKey) {
-  const dateKey = getDateKey();
+function buildDailyTasks(dayKey, targetDate) {
+  const dateKey = getDateKey(targetDate || getLogicalToday());
   const seed = hashString(`${dateKey}-${dayKey}`);
   const rnd = createRng(seed);
-  
+
   const unrestrictedCustomTasks = [];
   const forcedTasks = [];
 
   (serverConfig.custom_tasks || []).forEach(t => {
     const taskObj = {
+      id: t.id,
       titleUk: t.titleUk,
       titleEn: t.titleEn,
       build: () => ({ conditionUk: t.conditionUk, conditionEn: t.conditionEn }),
       imgUrl: t.imgUrl || "",
       tags: t.tags || "",
       answers: t.answers || "",
+      is_scored: t.is_scored !== false,
       fixed_points: t.fixed_points || null,
       fixed_accuracy: t.fixed_accuracy || null
     };
-    
+
     if (t.is_hidden) return; // Skip hidden tasks altogether
+
+    taskObj.day_assigned = parseInt(t.day_assigned) || 0;
 
     if (!t.allowedEmails || t.allowedEmails.trim() === "") {
       unrestrictedCustomTasks.push(taskObj);
@@ -482,19 +538,44 @@ function buildDailyTasks(dayKey) {
     }
   });
 
-  const source = [...unrestrictedCustomTasks];
+  const dayIndex = DAY_KEYS.indexOf(dayKey);
+  const targetProperty = dayIndex + 1;
+
+  // 1. Separate explicitly assigned custom tasks from automatic ones
+  // Tasks with day_assigned > 0 are STRICTLY bound to that day only - never auto-fill another day
+  const explicitlyAssignedToThisDay = unrestrictedCustomTasks.filter(t => t.day_assigned === targetProperty);
+  const automaticTasks = unrestrictedCustomTasks.filter(t => t.day_assigned === 0); // Only truly unassigned tasks
+
   const picked = [];
 
-  for (let i = 0; i < 3; i += 1) {
-    if (source.length === 0) break;
-    const idx = Math.floor(rnd() * source.length);
-    const tmpl = source.splice(idx, 1)[0];
+  // 2. We always need 2 tasks exactly. Fill them with explicity assigned first.
+  for (let t of explicitlyAssignedToThisDay) {
+    if (picked.length >= 2) break;
+    picked.push(t);
+  }
+
+  // 3. If we don't have 2 assigned tasks, pull deterministically from the automatic pool
+  if (picked.length < 2) {
+    const startIndex = Math.max(0, dayIndex) * 2;
+    let required = 2 - picked.length;
+
+    for (let i = 0; i < required; i += 1) {
+      const taskIdx = startIndex + i;
+      if (taskIdx >= automaticTasks.length) break;
+      picked.push(automaticTasks[taskIdx]);
+    }
+  }
+
+  const finalGenerated = [];
+
+  for (let i = 0; i < picked.length; i += 1) {
+    const tmpl = picked[i];
     const conditions = tmpl.build(rnd);
     const points = tmpl.fixed_points != null && tmpl.fixed_points !== "" ? parseInt(tmpl.fixed_points) : 12 + Math.floor(rnd() * 12);
     const accuracy = tmpl.fixed_accuracy != null && tmpl.fixed_accuracy !== "" ? parseInt(tmpl.fixed_accuracy) : 72 + Math.floor(rnd() * 26);
 
-    picked.push({
-      id: `${dateKey}-${dayKey}-${i + 1}`,
+    finalGenerated.push({
+      id: tmpl.id || `${dateKey}-${dayKey}-${i + 1}`,
       titleUk: tmpl.titleUk,
       titleEn: tmpl.titleEn,
       conditionUk: conditions.conditionUk,
@@ -502,6 +583,7 @@ function buildDailyTasks(dayKey) {
       imgUrl: tmpl.imgUrl || "",
       tags: tmpl.tags || "",
       answers: tmpl.answers || "",
+      is_scored: tmpl.is_scored !== false,
       points,
       accuracy
     });
@@ -511,8 +593,8 @@ function buildDailyTasks(dayKey) {
     const conditions = tmpl.build(rnd);
     const points = tmpl.fixed_points != null && tmpl.fixed_points !== "" ? parseInt(tmpl.fixed_points) : 15 + Math.floor(rnd() * 10);
     const accuracy = tmpl.fixed_accuracy != null && tmpl.fixed_accuracy !== "" ? parseInt(tmpl.fixed_accuracy) : 85 + Math.floor(rnd() * 15);
-    picked.push({
-      id: `${dateKey}-${dayKey}-f${i + 1}`,
+    finalGenerated.push({
+      id: tmpl.id || `${dateKey}-${dayKey}-f${i + 1}`,
       titleUk: tmpl.titleUk,
       titleEn: tmpl.titleEn,
       conditionUk: conditions.conditionUk,
@@ -520,12 +602,13 @@ function buildDailyTasks(dayKey) {
       imgUrl: tmpl.imgUrl || "",
       tags: tmpl.tags || "",
       answers: tmpl.answers || "",
+      is_scored: tmpl.is_scored !== false,
       points,
       accuracy
     });
   });
 
-  return picked;
+  return finalGenerated;
 }
 
 function ensureMathSymbols() {
@@ -575,11 +658,8 @@ function applyLanguage() {
   registerPassword.placeholder = t("registerPasswordPlaceholder");
   registerSubmitButton.textContent = t("registerSubmit");
 
-  ratingLabel.textContent = t("ratingLabel");
-  tasksTitle.textContent = t("tasksTitle");
+  if (pointsHeaderLabel) pointsHeaderLabel.textContent = t("pointsHeaderLabel");
   tasksDescription.textContent = t("tasksDescription");
-  tasksComingTitle.textContent = t("tasksComingTitle");
-  tasksComingText.textContent = t("tasksComingText");
   pointsLabel.textContent = t("pointsLabel");
   accuracyLabel.textContent = t("accuracyLabel");
   weekTitle.textContent = t("weekTitle");
@@ -589,7 +669,6 @@ function applyLanguage() {
   lbColName.textContent = t("lbName");
   lbColPoints.textContent = t("lbPoints");
   lbColAccuracy.textContent = t("lbAccuracy");
-  lbColRating.textContent = t("lbRating");
   toggleLeaderboardButton.textContent = isLeaderboardOpen ? t("hideLeaderboard") : t("showLeaderboard");
 
   adminTitle.textContent = t("adminTitle");
@@ -598,9 +677,6 @@ function applyLanguage() {
   adminColTask.textContent = t("adminColTask");
   adminColPoints.textContent = t("adminColPoints");
   adminColAnswer.textContent = t("adminColAnswer");
-
-  comingSoonTitle.textContent = t("comingSoonTitle");
-  comingSoonText.textContent = t("comingSoonText");
 
   taskModalTitle.textContent = t("taskModalTitle");
   answerLabel.textContent = t("answerLabel");
@@ -635,20 +711,51 @@ async function renderDayTasks(submissions) {
   if (!submissions) {
     submissions = await api("/api/submissions/me").catch(() => []);
   }
-  const todayKey = getTodayKey();
-  const tasks = buildDailyTasks(todayKey);
 
-  dayLabel.textContent = `${t("todayPrefix")}: ${formatDay(todayKey)}`;
+  // Determine active day key based on our shifting calendar
+  const activeDayIndex = getCompetitionDayIndex(activeViewingDate);
+  const activeDayKey = DAY_KEYS[activeDayIndex];
+
+  const activeDateKey = getDateKey(activeViewingDate);
+  const todayDateKey = getDateKey(getLogicalToday());
+
+  const tasks = buildDailyTasks(activeDayKey, activeViewingDate);
+
+  // Always show just the competition day label (no raw date)
+  dayLabel.textContent = formatDay(activeDayKey);
+
+  // Use competition day index (0-4) to avoid time-of-day mismatch bugs
+  btnPrevDay.style.visibility = activeDayIndex <= 0 ? "hidden" : "visible";
+  btnNextDay.style.visibility = activeDayIndex >= 4 ? "hidden" : "visible";
+
+  const isFuture = activeViewingDate > getLogicalToday();
+
   tasksList.innerHTML = "";
-  
-  if (isAdmin(sessionUser) || serverConfig.tasks_open) {
+
+  if (!isAdmin(sessionUser) && !serverConfig.tasks_open) {
+    // Tasks not yet opened by admin — show message inside task list area
     tasksList.classList.remove("hidden");
-    tasksComingSoon.classList.add("hidden");
-  } else {
-    tasksList.classList.add("hidden");
-    tasksComingSoon.classList.remove("hidden");
+    tasksList.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "tasks-empty-msg muted";
+    msg.textContent = isFuture ? "Задачі ще не опубліковані!" : "⏳ Задачі не опубліковані, чекайте 13:00";
+    tasksList.appendChild(msg);
+    return;
   }
 
+  tasksList.classList.remove("hidden");
+
+  if (tasks.length === 0) {
+    // No tasks for this day — show Coming soon
+    tasksList.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "tasks-empty-msg muted";
+    msg.textContent = currentLang === "en" ? "Coming soon" : "Скоро з'являться";
+    tasksList.appendChild(msg);
+    return;
+  }
+
+  tasksList.innerHTML = "";
   tasks.forEach((task) => {
     const card = document.createElement("article");
     const button = document.createElement("button");
@@ -661,24 +768,42 @@ async function renderDayTasks(submissions) {
       subInfo += `<br><div style="margin-top:6px;">${tagsDisplay}</div>`;
     }
     card.innerHTML = `<h5>${title}</h5><p>${subInfo}</p>`;
-    
-    const isSolved = submissions.some(s => s.task_id === task.id && s.day_key === todayKey && s.points > 0);
-    
+
+    const taskSubmissions = submissions
+      .filter((s) => s.task_id === task.id && s.day_key === activeDayKey)
+      .sort((a, b) => b.ts - a.ts);
+
+    const lastSubmission = taskSubmissions[0];
+    const wasEverCorrect = taskSubmissions.some((s) => isSubmissionCorrectForTask(task, s));
+    const isSolved = wasEverCorrect;
+
     if (isSolved) {
+      // Task already solved: keep green “Solved ✓” state,
+      // but still allow opening the modal to re-read the task text.
       button.type = "button";
-      button.textContent = currentLang === "en" ? "Solved ✓" : "Вирішено ✓";
-      button.disabled = true;
+      button.textContent = currentLang === "en" ? "Solved \u2713" : "\u0412\u0438\u0440\u0456\u0448\u0435\u043d\u043e \u2713";
       button.style.background = "#4CAF50";
       button.style.color = "white";
-      button.style.cursor = "default";
-      button.style.opacity = "0.8";
+      button.style.cursor = "pointer";
+      button.style.opacity = "0.9";
+      button.addEventListener("click", () => openTaskModal(task, activeDayKey));
     } else {
       button.type = "button";
       button.textContent = t("chooseTask");
-      button.addEventListener("click", () => openTaskModal(task, todayKey));
+      button.addEventListener("click", () => openTaskModal(task, activeDayKey));
     }
 
     card.appendChild(button);
+
+    // Show last submitted answer in purple (low-disruption)
+    if (lastSubmission && lastSubmission.answer) {
+      const answerBadge = document.createElement("p");
+      answerBadge.style.cssText = "margin-top:8px; font-size:0.82em; padding:4px 10px; border-radius:6px; background:rgba(107,82,195,0.12); color:#5e4a9e; border:1px solid rgba(107,82,195,0.35);";
+      const label = currentLang === "en" ? "Your answer" : "\u0412\u0430\u0448\u0430 \u0432\u0456\u0434\u043f\u043e\u0432\u0456\u0434\u044c";
+      answerBadge.textContent = `${label}: ${escapeHTML(lastSubmission.answer)}`;
+      card.appendChild(answerBadge);
+    }
+
     tasksList.appendChild(card);
   });
 }
@@ -689,7 +814,9 @@ function renderWeekStats(submissions) {
 
   submissions.forEach((item) => {
     const current = latestByDay.get(item.day_key);
-    if (!current || item.ts > current.ts) {
+    if (!current) {
+      latestByDay.set(item.day_key, item);
+    } else if (item.points > current.points || (item.points === current.points && item.accuracy > current.accuracy)) {
       latestByDay.set(item.day_key, item);
     }
   });
@@ -719,11 +846,11 @@ function renderWeekStats(submissions) {
 
 async function renderLeaderboard() {
   leaderboardBody.innerHTML = "";
-  
+
   // fetch only if undefined or empty, basically fetching once or when forced
   let rows = await api("/api/leaderboard");
   cachedLeaderboardRows = rows;
-  
+
   renderLeaderboardRows();
 }
 
@@ -735,7 +862,7 @@ function renderLeaderboardRows() {
   const filtered = cachedLeaderboardRows.filter(r => {
     // Check if user is hidden
     if (hiddenEmails.includes(r.email.toLowerCase())) return false;
-    
+
     // Check search query
     if (!query) return true;
     const nameMatch = (r.name || "").toLowerCase().includes(query);
@@ -745,7 +872,7 @@ function renderLeaderboardRows() {
 
   if (!filtered.length) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="5">${t("noLeaderboardData")}</td>`;
+    tr.innerHTML = `<td colspan="4">${t("noLeaderboardData")}</td>`;
     leaderboardBody.appendChild(tr);
     return;
   }
@@ -758,7 +885,6 @@ function renderLeaderboardRows() {
       <td>${escapeHTML(row.name)}</td>
       <td>${row.points}</td>
       <td>${row.accuracy}%</td>
-      <td>${row.rating}</td>
     `;
     leaderboardBody.appendChild(tr);
   });
@@ -770,12 +896,10 @@ async function renderAdminLog() {
   adminLogBody.innerHTML = "";
   if (!isAdmin(sessionUser)) {
     adminSection.classList.add("hidden");
-    comingSoonSection.classList.remove("hidden");
     return;
   }
 
   adminSection.classList.remove("hidden");
-  comingSoonSection.classList.add("hidden");
 
   const submissions = await api("/api/submissions");
   const sorted = [...submissions].sort((a, b) => b.ts - a.ts);
@@ -825,10 +949,11 @@ async function renderDashboard() {
 
   pointsValue.textContent = `${stats.totalPoints}`;
   accuracyValue.textContent = `${stats.avgAccuracy}%`;
-  totalRating.textContent = `${stats.dynamicRating}`;
+  totalRating.textContent = `${stats.totalPoints}`;
 
   if (btnToggleTasks) btnToggleTasks.textContent = serverConfig.tasks_open ? t("toggleTasksBtnClose") : t("toggleTasksBtnOpen");
 
+  lastUserSubmissions = submissions || [];
   await renderDayTasks(submissions);
   renderWeekStats(submissions);
   await renderLeaderboard();
@@ -840,7 +965,7 @@ async function openApp() {
   authSection.classList.add("hidden");
   appSection.classList.remove("hidden");
   settingsButton.classList.remove("hidden");
-  
+
   try {
     serverConfig = await api("/api/config");
   } catch (e) {
@@ -896,6 +1021,13 @@ async function deleteCurrentAccount() {
 
 async function submitTaskAnswer() {
   if (!activeTask || !sessionUser) return;
+  const alreadyCorrect = lastUserSubmissions.some(
+    (s) => s.task_id === activeTask.task.id && s.day_key === activeTask.dayKey && isSubmissionCorrectForTask(activeTask.task, s)
+  );
+  if (alreadyCorrect) {
+    showMessage(t("alreadySolved"), "error");
+    return;
+  }
   const answer = taskAnswer.value.trim();
   if (!answer) {
     showMessage(t("answerRequired"), "error");
@@ -919,11 +1051,39 @@ async function submitTaskAnswer() {
     }
   }
 
+  // No points if tasks are closed (admin controls visibility manually)
+  if (!serverConfig.tasks_open && !isAdmin(sessionUser)) {
+    finalPoints = 0;
+    finalAccuracy = 0;
+  }
+
+  // No points for past days
+  const activeDateKey = getDateKey(activeViewingDate);
+  const realTodayDateKey = getDateKey(getLogicalToday());
+
+  if (activeDateKey !== realTodayDateKey && activeViewingDate < getLogicalToday()) {
+    if (finalPoints > 0) {
+      showMessage(`Ви вирішили задачу за минулий день! Бали не нараховуються.`, "success");
+    }
+    finalPoints = 0;
+  }
+
+  // Per-task toggle: if this task is marked as non-scoring, never award points or accuracy
+  const isScored = activeTask.task.is_scored !== false;
+  if (!isScored) {
+    finalPoints = 0;
+    finalAccuracy = 0;
+  }
+
+  // Enforce Max Score Logging: we still POST the points to the server.
+  // The computeStats function ALREADY takes care of only giving them the BEST task logic!
+  // So if they submit a 10 pt task, and then a 20 pt task, computeStats will only credit 20.
+
   await api("/api/submissions", {
     method: "POST",
     body: JSON.stringify({
       day_key: activeTask.dayKey,
-      date_key: getDateKey(),
+      date_key: activeDateKey, // Save it using the actively viewed date so it binds to the correct day
       task_id: activeTask.task.id,
       task_title_uk: activeTask.task.titleUk,
       task_title_en: activeTask.task.titleEn,
@@ -948,8 +1108,35 @@ saveLanguageButton.addEventListener("click", () => {
   currentLang = languageSelect.value;
   setStorage("pi_lang", currentLang);
   applyLanguage();
+  renderDashboard();
   closeSettings();
 });
+
+if (btnPrevDay) {
+  btnPrevDay.addEventListener("click", () => {
+    const prev = new Date(activeViewingDate);
+    prev.setDate(prev.getDate() - 1);
+    // Compare by date only (strip time) - use competition day index as source of truth
+    const prevDayIndex = getCompetitionDayIndex(prev);
+    if (prevDayIndex >= 0) { // day1 index is 0, so this allows navigating to day1
+      activeViewingDate = prev;
+      renderDashboard();
+    }
+  });
+}
+
+if (btnNextDay) {
+  btnNextDay.addEventListener("click", () => {
+    const next = new Date(activeViewingDate);
+    next.setDate(next.getDate() + 1);
+    // Compare by date only - max is Day 5 (index 4)
+    const nextDayIndex = getCompetitionDayIndex(next);
+    if (nextDayIndex <= 4) { // day5 index is 4, allow navigating to it
+      activeViewingDate = next;
+      renderDashboard();
+    }
+  });
+}
 submitAnswerButton.addEventListener("click", submitTaskAnswer);
 cancelTaskButton.addEventListener("click", closeTaskModal);
 
