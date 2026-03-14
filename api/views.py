@@ -2,7 +2,7 @@ import base64
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from django.core.mail import send_mail
+from django.core.mail import send_mail, get_connection
 from django.db import IntegrityError
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -117,12 +117,15 @@ def register(request):
     email_sent = False
     if settings.EMAIL_HOST and settings.EMAIL_HOST_USER and settings.EMAIL_HOST_PASSWORD:
         try:
+            connection = get_connection(timeout=getattr(settings, "EMAIL_TIMEOUT", 5))
             send_mail(
                 "Daypi registration confirmation",
                 f"Вітаємо! Ваш пароль для входу в Daypi: {payload.get('password','')}\n"
                 f"Hello! Your Daypi password: {payload.get('password','')}\n",
                 settings.DEFAULT_FROM_EMAIL,
                 [email],
+                connection=connection,
+                fail_silently=True,
             )
             email_sent = True
         except Exception:

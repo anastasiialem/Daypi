@@ -87,6 +87,7 @@ EMAIL_HOST_USER = os.getenv("SMTP_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASS", "")
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = os.getenv("SMTP_FROM", EMAIL_HOST_USER or "no-reply@ucu.edu.ua")
+EMAIL_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", "5"))
 
 ADMIN_EMAIL = "lem.pn@ucu.edu.ua"
 ADMIN_PASSWORD = "200820"
